@@ -12,7 +12,7 @@
 <meta property="og:url" content="https://estebandenecken.github.io/">
 <meta property="og:site_name" content="Esteban Denecken">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="version" content="26.2">
+<meta name="version" content="26.3">
 <title>Esteban Denecken, PhD — Image Processing &amp; Computer Vision</title>
 <meta name="description" content="Esteban Denecken, PhD. Image processing, computer vision, biomedical imaging, and a set of focus tools built around a signal-processing view of productivity.">
 <meta property="og:title" content="Esteban Denecken, PhD">
@@ -31,7 +31,7 @@
 <meta name="theme-color" content="#000116">
 <style>
 :root{
-  /* Seeded so the page has sane colours even before the palette runtime
+  /* Seeded so the page has sane colors even before the palette runtime
      lands; the runtime overwrites every one of these on <html>. */
   --navy:#000116; --cyan:#17B4D8; --gray:#EAEBEC;
   --teal:#3FA0C4; --gold:#FCC615; --olive:#7C8AA8;
@@ -154,8 +154,6 @@ footer a:hover{color:var(--cyan)}
 @media(max-width:420px){h1{font-size:24px}body{padding-top:34px}}
 
 /* ---- language switch ---- */
-.topline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px}
-.topline .back{margin-bottom:0}
 .langsw{display:flex;gap:6px;margin-left:auto}
 .langsw button{
   background:var(--well);border:1px solid var(--border);color:var(--muted);
@@ -193,7 +191,7 @@ footer a:hover{color:var(--cyan)}
 
 <script>
 /* Theme runtime. One palette — Deep Navy — in a dark mode and a light one.
-   Runs before first paint so there's no flash of the wrong colours. The mode
+   Runs before first paint so there's no flash of the wrong colors. The mode
    is saved once and every page on the site reads the same choice. */
 (function(){
   "use strict";
@@ -428,7 +426,7 @@ footer a:hover{color:var(--cyan)}
       <span class="arrow">→</span>
     </a>
 
-    <a class="link" title="Weighted-equal random selection from a bounded list" data-es-title="Selección al azar, con igual peso, de una lista acotada" href="app-demos/decide.html">
+    <a class="link" title="Weighted-equal random selection from a bounded list" data-es-title="Selección al azar, con igual peso, de una lista acotada" href="app-demos/taskroulette.html">
       <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2.2a7.8 7.8 0 0 1 3.9 1.05l-3.9 6.75zm-1 .12v7.68H3.32A7.8 7.8 0 0 1 11 4.32zm6.65 2.06A7.8 7.8 0 0 1 19.8 11h-7.79zM3.32 13H11v7.68A7.8 7.8 0 0 1 3.32 13zm9.7 0h6.78a7.8 7.8 0 0 1-3.85 6.03z"/></svg></span>
       <span class="txt" data-es="<b>Ruleta de tareas</b><span>Selección al azar, con igual peso, de una lista acotada</span>"><b>To-do Roulette</b><span>Weighted-equal random selection from a bounded list</span></span>
       <span class="arrow">→</span>
@@ -441,7 +439,7 @@ footer a:hover{color:var(--cyan)}
      data-es="❤️ Invítame un café">❤️ Buy me a coffee</a>
 
   <footer>
-    <p>© <span id="yr">2026</span> Esteban Denecken · v26.2</p>
+    <p>© <span id="yr">2026</span> Esteban Denecken · v26.3</p>
   </footer>
 </div>
 <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>

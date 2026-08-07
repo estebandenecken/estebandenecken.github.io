@@ -12,7 +12,7 @@
 <meta property="og:url" content="https://estebandenecken.github.io/app-demos/convolution.html">
 <meta property="og:site_name" content="Esteban Denecken">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="version" content="26.2">
+<meta name="version" content="26.3">
 <title>Convolution Playground — Esteban Denecken</title>
 <meta name="description" content="Drop an image and apply a convolution kernel — blur, sharpen, Sobel, Laplacian — or write your own. See the result and its histogram side by side. Nothing is uploaded.">
 <meta property="og:title" content="Convolution Playground — Esteban Denecken">
@@ -174,8 +174,6 @@ h1{font-size:24px;letter-spacing:-.3px;margin-bottom:4px}
 .btn:hover{border-color:var(--cyan);color:var(--gray)}
 .btn.primary{background:var(--cyan);border-color:var(--cyan);color:var(--navy);font-weight:650}
 .btn.primary:hover{filter:brightness(1.12);color:var(--navy)}
-.btn.gonote{border-color:var(--teal);color:var(--gray)}
-.btn.gonote:hover{border-color:var(--mint);color:var(--mint)}
 .btn.danger:hover{border-color:var(--coral);color:var(--coral)}
 
 .note{margin-top:20px;padding:15px 17px;border-left:3px solid var(--teal);background:color-mix(in srgb, var(--teal) 8%, transparent);border-radius:0 10px 10px 0;color:var(--muted);font-size:13.5px}
@@ -263,7 +261,7 @@ footer a{color:var(--teal);text-decoration:none}
 </style>
 <script>
 /* Theme runtime. One palette — Deep Navy — in a dark mode and a light one.
-   Runs before first paint so there's no flash of the wrong colours. The mode
+   Runs before first paint so there's no flash of the wrong colors. The mode
    is saved once and every page on the site reads the same choice. */
 (function(){
   "use strict";

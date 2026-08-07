@@ -12,7 +12,7 @@
 <meta property="og:url" content="https://estebandenecken.github.io/app-demos/pomodoro.html">
 <meta property="og:site_name" content="Esteban Denecken">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="version" content="26.2">
+<meta name="version" content="26.3">
 <title>Pomodoro Timer — Esteban Denecken</title>
 <meta name="description" content="A pomodoro timer designed for AuDHD brains: visible time, low activation energy, no guilt mechanics.">
 <meta property="og:title" content="Pomodoro Timer — Esteban Denecken">
@@ -231,7 +231,7 @@ footer a{color:var(--teal);text-decoration:none}
 </style>
 <script>
 /* Theme runtime. One palette — Deep Navy — in a dark mode and a light one.
-   Runs before first paint so there's no flash of the wrong colours. The mode
+   Runs before first paint so there's no flash of the wrong colors. The mode
    is saved once and every page on the site reads the same choice. */
 (function(){
   "use strict";
@@ -670,7 +670,6 @@ footer a{color:var(--teal);text-decoration:none}
     refreshLog();
   }
 
-  function pad2(n){ return (n < 10 ? "0" : "") + n; }
   function span(min){
     var h = Math.floor(min / 60), m = min % 60;
     return (h ? h + " h " + (m ? m + " min" : "") : m + " min").trim();

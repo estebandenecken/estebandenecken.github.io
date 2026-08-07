@@ -5,18 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; media-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<link rel="canonical" href="https://estebandenecken.github.io/app-demos/decide.html">
+<link rel="canonical" href="https://estebandenecken.github.io/app-demos/taskroulette.html">
 <meta property="og:image" content="https://estebandenecken.github.io/images/og-card.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://estebandenecken.github.io/app-demos/decide.html">
+<meta property="og:url" content="https://estebandenecken.github.io/app-demos/taskroulette.html">
 <meta property="og:site_name" content="Esteban Denecken">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="version" content="26.2">
+<meta name="version" content="26.3">
 <title>To-do Roulette: Break Decision Paralysis — Esteban Denecken</title>
-<meta name="description" content="A to-do list with a colour wheel that picks one task at random. For when choosing what to do costs more than doing it.">
+<meta name="description" content="A to-do list with a color wheel that picks one task at random. For when choosing what to do costs more than doing it.">
 <meta property="og:title" content="To-do Roulette: Break Decision Paralysis — Esteban Denecken">
-<meta property="og:description" content="A to-do list with a colour wheel that picks one task at random. For when choosing what to do costs more than doing it.">
+<meta property="og:description" content="A to-do list with a color wheel that picks one task at random. For when choosing what to do costs more than doing it.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="es_ES">
@@ -250,7 +250,7 @@ footer a{color:var(--teal);text-decoration:none}
 </style>
 <script>
 /* Theme runtime. One palette — Deep Navy — in a dark mode and a light one.
-   Runs before first paint so there's no flash of the wrong colours. The mode
+   Runs before first paint so there's no flash of the wrong colors. The mode
    is saved once and every page on the site reads the same choice. */
 (function(){
   "use strict";
@@ -472,7 +472,7 @@ footer a{color:var(--teal);text-decoration:none}
   </div>
 
   <div class="note" data-es="<b>Solo las tareas pendientes están en la ruleta.</b> Marcar una la atenúa y le quita su porción, así que las probabilidades se reparten entre lo que queda. Los colores pertenecen a la tarea, no a su posición — borrar una no le cambia el color a las demás.">
-    <b>Only unfinished tasks are on the wheel.</b> Ticking one off greys it out and pulls its slice, so the odds shift to what's left. Colours belong to the task, not its position — deleting one doesn't reshuffle everyone else's.
+    <b>Only unfinished tasks are on the wheel.</b> Ticking one off greys it out and pulls its slice, so the odds shift to what's left. colors belong to the task, not its position — deleting one doesn't reshuffle everyone else's.
   </div>
 
   <div class="note" data-es="<b>La ruleta es realmente aleatoria.</b> Cada tarea pendiente recibe una porción igual y la misma probabilidad, y cada giro es independiente del anterior. No evita repetirse, y una tarea que sigues saltándote no se vuelve más probable — conviene saberlo antes de culparla.">
@@ -506,7 +506,7 @@ footer a{color:var(--teal);text-decoration:none}
   var addBtn  = document.getElementById("addBtn");
 
   var tasks = [];       // {id, text, done, hue}
-  var nextHue = 0;      // walks the colour circle by the golden angle
+  var nextHue = 0;      // walks the color circle by the golden angle
   var wonId = null;
   var rotation = 0;
   var spinning = false;
@@ -518,8 +518,8 @@ footer a{color:var(--teal);text-decoration:none}
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) SPIN_SEC = 0.6;
   }catch(e){}
 
-  // ---- colour ------------------------------------------------------------
-  // Golden-angle spacing keeps neighbouring slices far apart on the colour
+  // ---- color ------------------------------------------------------------
+  // Golden-angle spacing keeps neighbouring slices far apart on the color
   // circle no matter how many there are.
   var GOLDEN = 137.508;
 
@@ -594,7 +594,7 @@ footer a{color:var(--teal);text-decoration:none}
 
     var n = items.length, step = 360 / n;
 
-    // Bare colour. Each slice is identified by its colour alone, matched to
+    // Bare color. Each slice is identified by its color alone, matched to
     // the dot beside the task in the list.
     items.forEach(function(t, i){
       var from = i * step, to = (i + 1) * step;
@@ -741,7 +741,7 @@ footer a{color:var(--teal);text-decoration:none}
       li.className = (t.done ? "done" : "") + (t.id === wonId ? " won" : "");
       li.style.borderLeftColor = t.done ? "" : colorOf(t);
 
-      // A plain colour dot — the same colour as this task's slice.
+      // A plain color dot — the same color as this task's slice.
       var num = document.createElement("span");
       num.className = "num";
       num.style.background = t.done ? "transparent" : colorOf(t);
