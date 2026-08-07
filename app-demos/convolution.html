@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; media-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="canonical" href="https://estebandenecken.github.io/app-demos/convolution.html">
+<meta property="og:image" content="https://estebandenecken.github.io/images/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://estebandenecken.github.io/app-demos/convolution.html">
+<meta property="og:site_name" content="Esteban Denecken">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="version" content="26.2">
+<title>Convolution Playground — Esteban Denecken</title>
+<meta name="description" content="Drop an image and apply a convolution kernel — blur, sharpen, Sobel, Laplacian — or write your own. See the result and its histogram side by side. Nothing is uploaded.">
+<meta property="og:title" content="Convolution Playground — Esteban Denecken">
+<meta property="og:description" content="Drop an image and apply a convolution kernel — blur, sharpen, Sobel, Laplacian — or write your own. See the result and its histogram side by side. Nothing is uploaded.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23000116'/><text y='72' x='50' text-anchor='middle' font-size='58' font-family='Helvetica,sans-serif' font-weight='bold' fill='%2317B4D8'>ED</text></svg>">
+<link rel="icon" type="image/png" sizes="32x32" href="../images/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../images/apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Convolve">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000116">
+<style>
+:root{
+  --navy:#000116; --cyan:#17B4D8; --gray:#EAEBEC;
+  --teal:#0A7FA3; --gold:#FCC615; --olive:#685C38;
+  --mint:#2FE6B0; --coral:#FF6B6B; --sunset:#FF9F45;
+  --card:#0a0d22; --border:#1c2340; --muted:#8b93ad;
+  --well:#070a1c; --hover:#0d1230;
+  --wheel-sat:70; --wheel-light:57;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--navy); color:var(--gray);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+  line-height:1.6; min-height:100vh; padding:28px 20px 60px;
+  display:flex; flex-direction:column; align-items:center;
+  background-image:radial-gradient(ellipse 80% 45% at 50% -5%, color-mix(in srgb, var(--cyan) 12%, transparent), transparent 70%);
+}
+.wrap{width:100%;max-width:760px}
+/* framed so it's a real target for a thumb, not a line of text */
+.back{
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;
+  background:var(--card);border:1px solid var(--border);border-radius:11px;
+  padding:0 18px;min-height:46px;margin-bottom:22px;
+  transition:border-color .15s,color .15s,background .15s,transform .06s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.back:hover{color:var(--cyan);border-color:var(--cyan);background:var(--hover)}
+.back:active{transform:translateY(1px)}
+h1{font-size:24px;letter-spacing:-.3px;margin-bottom:4px}
+.sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px}
+/* ---- drop zone ---- */
+/* A label, so it needs display:block to take the card's full width and to
+   hold its own padding the way the cards below it do. */
+.drop{
+  display:block;width:100%;
+  border:1.5px dashed var(--border);border-radius:14px;background:var(--well);
+  padding:26px 20px;text-align:center;transition:border-color .15s,background .15s;
+  cursor:pointer;margin-bottom:14px;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.drop:hover,.drop.over{border-color:var(--cyan);background:var(--hover)}
+.drop:focus-within{border-color:var(--cyan);border-style:solid}
+.drop b{display:block;color:var(--gray);font-size:15px;margin-bottom:4px}
+.drop span{display:block;color:var(--olive);font-size:13px;line-height:1.5}
+/* off-screen rather than display:none, so the field still takes Tab focus */
+.vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- image pair ---- */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pane{min-width:0}
+.pane h2,
+.pane h3{
+  font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--olive);font-weight:800;margin-bottom:6px;
+}
+.pane canvas{
+  width:100%;height:auto;display:block;border:1px solid var(--border);
+  border-radius:10px;background:var(--well);image-rendering:auto;
+}
+.dims{color:var(--olive);font-size:11.5px;margin-top:5px;font-variant-numeric:tabular-nums}
+
+/* ---- kernel presets ---- */
+.presets{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.presets button{
+  background:var(--well);border:1px solid var(--border);color:var(--muted);
+  border-radius:99px;padding:8px 14px;font:inherit;font-size:13px;font-weight:650;
+  cursor:pointer;transition:.15s;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+.presets button:hover{border-color:var(--teal);color:var(--gray)}
+.presets button[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan);background:var(--hover)}
+
+/* ---- the matrix ---- */
+.kwrap{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.kgrid{display:grid;grid-template-columns:repeat(3,58px);gap:6px}
+.kgrid.k5{grid-template-columns:repeat(5,46px)}
+.kgrid input{
+  width:100%;background:var(--well);border:1px solid var(--border);border-radius:9px;
+  color:var(--gray);font:inherit;font-size:15px;font-variant-numeric:tabular-nums;
+  text-align:center;padding:10px 2px;
+}
+.kgrid input:focus{outline:none;border-color:var(--cyan)}
+.kgrid input:disabled{opacity:.5;cursor:not-allowed}
+.kgrid input.mid{border-color:var(--teal)}
+.kside{flex:1 1 240px;min-width:0}
+.krow{display:flex;gap:11px}
+.krow .field{flex:1 1 0;min-width:0;margin-bottom:0}
+.field{margin-bottom:11px}
+.field label{
+  display:block;font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--olive);font-weight:800;margin-bottom:5px;
+}
+.field input[type=number]{
+  width:100%;background:var(--well);border:1px solid var(--border);border-radius:10px;
+  color:var(--gray);font:inherit;font-size:16px;font-variant-numeric:tabular-nums;
+  padding:11px 13px;
+}
+.field input:focus{outline:none;border-color:var(--cyan)}
+.field input:disabled{opacity:.5}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.opt{
+  background:transparent;border:1px solid var(--border);color:var(--muted);
+  border-radius:10px;padding:9px 13px;font:inherit;font-size:13px;cursor:pointer;
+  transition:.15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.opt:hover{border-color:var(--cyan);color:var(--gray)}
+.opt[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan);background:var(--hover)}
+.kname{color:var(--muted);font-size:13px;margin-bottom:12px}
+.kname b{color:var(--gray)}
+
+/* ---- histogram ---- */
+.histbox{position:relative}
+#hist{
+  width:100%;height:auto;display:block;background:var(--well);
+  border:1px solid var(--border);border-radius:10px;
+}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:9px;font-size:12px;color:var(--olive)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend .a i{background:var(--cyan)}
+.legend .b i{background:transparent;border:1.5px solid var(--gold)}
+.chans{display:flex;gap:6px;margin-bottom:12px}
+.chans button{
+  flex:1;background:var(--well);border:1px solid var(--border);color:var(--muted);
+  border-radius:10px;min-height:42px;padding:0 8px;font:inherit;font-size:13px;font-weight:700;
+  cursor:pointer;transition:.15s;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+.chans button:hover{border-color:var(--teal);color:var(--gray)}
+.chans button[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan);background:var(--hover)}
+.stats{display:flex;flex-wrap:wrap;gap:16px;margin-top:11px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.stats b{color:var(--gray);font-weight:650}
+
+.busy{color:var(--olive);font-size:12.5px;min-height:19px;margin-top:11px;text-align:center}
+/* the bar under the drop zone owns the 14px gap, so it doesn't stack with one */
+#srcBar{margin-top:0;margin-bottom:14px}
+.hidden{display:none !important}
+
+.bar{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+.btn{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:10px;padding:10px 15px;font:inherit;font-size:13.5px;cursor:pointer;transition:.15s;touch-action:manipulation}
+.btn:hover{border-color:var(--cyan);color:var(--gray)}
+.btn.primary{background:var(--cyan);border-color:var(--cyan);color:var(--navy);font-weight:650}
+.btn.primary:hover{filter:brightness(1.12);color:var(--navy)}
+.btn.gonote{border-color:var(--teal);color:var(--gray)}
+.btn.gonote:hover{border-color:var(--mint);color:var(--mint)}
+.btn.danger:hover{border-color:var(--coral);color:var(--coral)}
+
+.note{margin-top:20px;padding:15px 17px;border-left:3px solid var(--teal);background:color-mix(in srgb, var(--teal) 8%, transparent);border-radius:0 10px 10px 0;color:var(--muted);font-size:13.5px}
+.note b{color:var(--gray)}
+.note code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:var(--cyan)}
+/* ---- end-of-page calls to action ---- */
+/* Same shapes as the landing page, so a visitor who arrives straight on a demo
+   still sees the toolbox and the tip jar in a form they'll recognise there. */
+.featured{
+  display:block;text-decoration:none;border-radius:14px;padding:18px 20px;
+  margin-top:30px;
+  background:linear-gradient(120deg,color-mix(in srgb, var(--cyan) 13%, transparent),color-mix(in srgb, var(--cyan) 4%, transparent));
+  border:1px solid color-mix(in srgb, var(--cyan) 42%, transparent);
+  transition:transform .15s ease, border-color .15s ease;
+}
+.featured:hover{transform:translateY(-2px);border-color:var(--cyan)}
+.featured .kicker{color:var(--cyan);font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase}
+.featured .ttl{color:var(--gray);font-size:17px;font-weight:650;margin-top:5px}
+.featured .feats{list-style:none;margin:11px 0 0;padding:0}
+.featured .feats li{
+  color:var(--muted);font-size:13px;line-height:1.5;
+  padding-left:19px;position:relative;
+}
+.featured .feats li + li{margin-top:3px}
+.featured .feats li::before{
+  content:"\2713";position:absolute;left:0;top:0;
+  color:var(--cyan);font-weight:700;
+}
+.tip-button{
+  display:block;text-align:center;text-decoration:none;
+  background:var(--card);color:var(--gray);
+  border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  font-size:14px;font-weight:600;letter-spacing:.3px;
+  border-radius:12px;padding:12px 20px;margin:12px 0 0;
+  transition:transform .15s ease, border-color .15s ease, background .15s ease;
+}
+.tip-button:hover{transform:translateY(-2px);border-color:var(--gold);background:var(--hover)}
+footer{margin-top:34px;text-align:center;color:var(--muted);font-size:12.5px}
+footer a{color:var(--teal);text-decoration:none}
+@media(max-width:720px){
+  body{padding:22px 14px 50px}
+  .pair{grid-template-columns:1fr}
+  .kgrid{grid-template-columns:repeat(3,1fr);width:100%}
+  .kgrid.k5{grid-template-columns:repeat(5,1fr)}
+  .kgrid input{font-size:16px}   /* 16px stops iOS zooming on focus */
+  .kwrap{gap:14px}
+}
+
+/* ---- language switch ---- */
+.topline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.topline .back{margin-bottom:0}
+.langsw{display:flex;gap:6px;margin-left:auto}
+.langsw button{
+  background:var(--well,#070a1c);border:1px solid var(--border);color:var(--muted);
+  border-radius:11px;min-height:46px;padding:0 15px;font:inherit;font-size:13px;font-weight:800;
+  letter-spacing:.6px;cursor:pointer;transition:.15s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.langsw button:hover{border-color:var(--cyan);color:var(--gray)}
+.langsw button[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan);color:var(--navy)}
+/* ---- appearance / language ---- */
+.prefs{margin:26px 0 22px}
+.prefs-label{
+  font-size:11px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--muted);font-weight:700;margin:0 4px 12px;
+}
+.prefs-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.modetog{
+  display:flex;align-items:center;justify-content:center;
+  width:38px;height:38px;flex:none;
+  background:var(--well);border:1px solid var(--border);color:var(--muted);
+  border-radius:11px;cursor:pointer;transition:.15s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.modetog svg{width:16px;height:16px;fill:currentColor}
+.modetog:hover{border-color:var(--cyan);color:var(--gray)}
+.prefs .langsw{margin-left:auto}
+/* ---- no JavaScript ---- */
+.nojs{
+  max-width:560px;margin:0 auto 22px;padding:14px 18px;border-radius:12px;
+  background:color-mix(in srgb, var(--gold) 10%, transparent);
+  border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  color:var(--gray);font-size:14px;line-height:1.55;
+}
+</style>
+<script>
+/* Theme runtime. One palette — Deep Navy — in a dark mode and a light one.
+   Runs before first paint so there's no flash of the wrong colours. The mode
+   is saved once and every page on the site reads the same choice. */
+(function(){
+  "use strict";
+  var MKEY = "estebandenecken.mode.v1";
+
+  var MODES = {
+    dark: {
+      navy:"#000116", card:"#0a0d22", well:"#070a1c", hover:"#0d1230",
+      border:"#1c2340", gray:"#EAEBEC", muted:"#8b93ad", olive:"#7C8AA8",
+      cyan:"#17B4D8", teal:"#3FA0C4", gold:"#FCC615",
+      mint:"#2FE6B0", coral:"#FF6B6B", sunset:"#FF9F45",
+      "wheel-sat":"70", "wheel-light":"57"
+    },
+    light: {
+      navy:"#EDF1F7", card:"#FBFCFE", well:"#DFE7F1", hover:"#E2EAF4",
+      border:"#C3D0E0", gray:"#0E1726", muted:"#4A5B72", olive:"#586A82",
+      cyan:"#0A6A88", teal:"#1A6580", gold:"#7D5804",
+      mint:"#0B6A54", coral:"#A8372F", sunset:"#96530C",
+      "wheel-sat":"55", "wheel-light":"38"
+    }
+  };
+
+  function apply(mode){
+    var p = MODES[mode], s = document.documentElement.style, k;
+    for (k in p){ s.setProperty("--" + k, p[k]); }
+    document.documentElement.setAttribute("data-color-mode", mode);
+    /* Tells the browser which way to paint scrollbars and form controls. */
+    document.documentElement.style.colorScheme = mode;
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", p.navy);
+  }
+
+  function savedMode(){
+    try{
+      var v = localStorage.getItem(MKEY);
+      if (v === "dark" || v === "light") return v;
+    }catch(e){}
+    return "dark";
+  }
+
+  apply(savedMode());
+
+  window.toolboxTheme = {
+    mode: savedMode,
+    colors: function(){ return MODES[savedMode()]; },
+    setMode: function(m){
+      if (m !== "dark" && m !== "light") return;
+      try{ localStorage.setItem(MKEY, m); }catch(e){}
+      apply(m);
+    },
+    toggleMode: function(){ this.setMode(savedMode() === "dark" ? "light" : "dark"); }
+  };
+})();
+</script><script>
+/* Language runtime. Shaped like the palette one: the choice is saved once and
+   every page reads it before the body renders. Anything carrying a data-es
+   attribute gets swapped; the English stays in the markup as the fallback. */
+(function(){
+  "use strict";
+  var KEY = "estebandenecken.lang.v1";
+  var ATTRS = {"data-es-ph":"placeholder", "data-es-aria":"aria-label", "data-es-title":"title"};
+
+  function saved(){
+    try{
+      var v = localStorage.getItem(KEY);
+      if (v === "es" || v === "en") return v;
+    }catch(e){}
+    return "en";
+  }
+  var lang = saved();
+
+  function apply(){
+    var i, n, nodes = document.querySelectorAll("[data-es]");
+    for (i = 0; i < nodes.length; i++){
+      n = nodes[i];
+      if (!n.hasAttribute("data-en")) n.setAttribute("data-en", n.innerHTML);
+      var want = n.getAttribute(lang === "es" ? "data-es" : "data-en");
+      if (want !== null && n.innerHTML !== want) n.innerHTML = want;
+    }
+    for (var a in ATTRS){
+      var keep = a.replace("data-es-", "data-en-");
+      nodes = document.querySelectorAll("[" + a + "]");
+      for (i = 0; i < nodes.length; i++){
+        n = nodes[i];
+        if (!n.hasAttribute(keep)) n.setAttribute(keep, n.getAttribute(ATTRS[a]) || "");
+        n.setAttribute(ATTRS[a], n.getAttribute(lang === "es" ? a : keep) || "");
+      }
+    }
+    nodes = document.querySelectorAll("[data-setlang]");
+    for (i = 0; i < nodes.length; i++)
+      nodes[i].setAttribute("aria-pressed", String(nodes[i].getAttribute("data-setlang") === lang));
+    document.documentElement.setAttribute("lang", lang);
+  }
+
+  window.toolboxLang = {
+    current: function(){ return lang; },
+    // for the strings that only exist inside a tool's own JavaScript
+    t: function(en, es){ return lang === "es" ? es : en; },
+    set: function(v){
+      if (v !== "en" && v !== "es" || v === lang) return;
+      lang = v;
+      try{ localStorage.setItem(KEY, v); }catch(e){}
+      apply();
+      var ev;
+      try{ ev = new CustomEvent("langchange", {detail: v}); }
+      catch(e){ ev = document.createEvent("Event"); ev.initEvent("langchange", true, true); }
+      window.dispatchEvent(ev);
+    },
+    apply: apply
+  };
+
+  document.documentElement.setAttribute("lang", lang);
+
+  function start(){
+    apply();
+    document.addEventListener("click", function(e){
+      var t = e.target, b = null;
+      while (t && t !== document){
+        if (t.getAttribute && t.getAttribute("data-setlang")){ b = t; break; }
+        t = t.parentNode;
+      }
+      if (b) window.toolboxLang.set(b.getAttribute("data-setlang"));
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
+})();
+</script>
+<script>
+/* Spanish for the strings each tool builds in JavaScript. Looked up by the
+   English original, so a phrase held in a variable translates too. */
+(function(){
+  "use strict";
+  var P = {"Copied ✓": "Copiado ✓","Downloaded ✓": "Descargado ✓","Added to Notes ✓": "En Notas ✓","In Notes ✓": "En Notas ✓","Cleared ✓": "Borrado ✓","Saved ✓": "Guardado ✓","Done ✓": "Listo ✓","Copy failed": "No se pudo copiar","Notes is full": "Notas está lleno","Nothing to copy": "Nada que copiar","Nothing to export": "Nada que exportar","Nothing to send": "Nada que enviar","Nothing to spin": "Nada que girar","No note": "Sin nota","No notes": "Sin notas","Press ⌘C": "Pulsa ⌘C","Press ⌘C instead": "Mejor pulsa ⌘C","Use ⌘V": "Usa ⌘V","Clipboard empty": "Portapapeles vacío","Saved.": "Guardado.","Activate": "Activar","Focus": "Foco","Break": "Pausa","Long Break": "Pausa larga","Start": "Iniciar","Pause": "Pausar","Resume": "Continuar","Block finished.": "Bloque terminado.","Break over. Back when you're ready.": "Se acabó la pausa. Vuelve cuando estés listo.","Done: ": "Listo: "," Take the break.": " Tómate la pausa."," complete": " completado","nothing logged yet": "sin registros aún"," · last 30 days": " · últimos 30 días"," of focus · exported ": " de foco · exportado "," recorded here. Export first if you want a copy.": " registradas aquí. Exporta primero si quieres una copia.","Delete the focus log? ": "¿Borrar el registro de foco? ","Inhale": "Inhala","Hold": "Sostén","Exhale": "Exhala","Ready": "Listo","Relax": "Relajar"," done": " completados","Spin": "Girar","Spinning.": "Girando.","Spin (only one left)": "Girar (solo queda una)","Mark done": "Marcar como hecha","Put it back": "Devolverla","Delete": "Borrar","Nothing done yet": "Nada hecho aún","Add a few tasks, then spin.": "Agrega algunas tareas y luego gira.","All done. Nothing left to pick.": "Todo listo. No queda nada que elegir.","It was the only one left.": "Era la única que quedaba.","That's plenty — finish or delete one first.": "Con eso basta — termina o borra una primero.","One of ": "Una de ","Tick: ": "Marcar: ","Delete all ": "¿Borrar las "," tasks? This cannot be undone.": " tareas? Esto no se puede deshacer.","Untitled note": "Nota sin título","No notes yet — press “New note”.": "Aún no hay notas — pulsa “Nueva nota”.","Nothing matches that search.": "Nada coincide con esa búsqueda.","Could not save — this browser's storage is full.": "No se pudo guardar — el almacenamiento de este navegador está lleno.","Long note — your mail app may cut it short.": "Nota larga — tu aplicación de correo podría cortarla.","No extra text": "Sin texto adicional","just now": "recién","edited just now": "editada recién","edited ": "editada ","last edited": "última edición","no notes": "sin notas"," min ago": " min atrás"," h ago": " h atrás"," days ago": " días atrás"," note": " nota"," notes": " notas","Delete “": "¿Borrar “","”? This cannot be undone.": "”? Esto no se puede deshacer.","Cannot divide by zero": "No se puede dividir por cero","Not a number": "No es un número","Bad number": "Número inválido","Expression is incomplete": "La expresión está incompleta","Factorial needs a whole number ≥ 0": "El factorial necesita un entero ≥ 0","Square root of a negative number": "Raíz cuadrada de un número negativo","ln needs a value above 0": "ln necesita un valor mayor que 0","log needs a value above 0": "log necesita un valor mayor que 0","sin⁻¹ needs a value between -1 and 1": "sin⁻¹ necesita un valor entre -1 y 1","cos⁻¹ needs a value between -1 and 1": "cos⁻¹ necesita un valor entre -1 y 1","Unknown function ": "Función desconocida ","nothing yet": "nada aún","Tap the keys · ⌫ to fix": "Toca las teclas · ⌫ para corregir","Click to put this expression back on the screen": "Haz clic para volver a poner esta expresión en la pantalla","Clear all ": "¿Borrar las "," calculations? This cannot be undone.": " operaciones? Esto no se puede deshacer."," calculation": " operación"," calculations": " operaciones","There's nothing in the box to save.": "No hay nada en el cuadro para guardar.","There's nothing to send yet.": "Todavía no hay nada que enviar.","There's nothing to export yet — paste some text on the Text side first.": "Todavía no hay nada que exportar — pega algo de texto en el lado Texto primero.","Clear the box? Anything you saved stays in the list below.": "¿Limpiar el cuadro? Lo que guardaste se queda en la lista de abajo.","That file couldn't be read.": "No se pudo leer ese archivo.","This browser's storage is full, so that text wasn't saved.": "El almacenamiento de este navegador está lleno, así que ese texto no se guardó.","This browser's storage is full, so the note wasn't created.": "El almacenamiento de este navegador está lleno, así que la nota no se creó.","That note is no longer in this browser. Paste something below instead.": "Esa nota ya no está en este navegador. Pega algo abajo en su lugar.","Reading a note from Notes — edits here don't change it.": "Leyendo una nota desde Notas — lo que edites aquí no la cambia.","← Back to Notes": "← Volver a Notas","Reading ruler: ": "Regla de lectura: "," word": " palabra"," words": " palabras"," characters": " caracteres"," chars": " caracteres"," line": " línea"," lines": " líneas","under a minute at a steady pace": "menos de un minuto a ritmo tranquilo"," min at a steady pace": " min a ritmo tranquilo","about ": "cerca de ","empty": "vacío","off": "no","on": "sí","Delete all tasks? This can't be undone.": "¿Borrar todas las tareas? Esto no se puede deshacer."," task": " tarea"," tasks": " tareas"," open": " abiertas","Clear everything in ": "¿Borrar todo en ","? This cannot be undone.": "? Esto no se puede deshacer."," item": " elemento"," items": " elementos"," saved in this browser · ": " guardado en este navegador · ",". Nothing is uploaded anywhere.": ". No se sube nada a ninguna parte.","Nothing saved here yet. Notes, calculations, tasks and planners are stored in this browser only — never uploaded.": "Aún no hay nada guardado aquí. Las notas, los cálculos, las tareas y los planificadores se guardan solo en este navegador — nunca se suben.","Nothing to read yet — go back to <b>Text</b> and paste something in.": "Todavía no hay nada que leer — vuelve a <b>Texto</b> y pega algo."};
+  if (!window.toolboxLang) return;
+  window.toolboxLang.s = function(v){
+    if (window.toolboxLang.current() !== "es") return v;
+    return Object.prototype.hasOwnProperty.call(P, v) ? P[v] : v;
+  };
+})();
+</script>
+</head>
+<body>
+<noscript>
+  <p class="nojs" data-es="Esta página necesita JavaScript. Todo corre en tu navegador — no hay servidor — así que sin JavaScript no queda nada que mostrar. Actívalo y recarga.">This page needs JavaScript. Everything runs in your browser — there is no server — so with JavaScript off there is nothing to show. Turn it on and reload.</p>
+</noscript>
+<div class="wrap">
+
+  <div class="topline">
+    <a class="back" href="../index.html" data-es="← Inicio">← Home</a>
+  </div>
+  <h1 data-es="Laboratorio de convolución">Convolution Playground</h1>
+  <p class="sub" data-es="Suelta una imagen, aplica un núcleo — desenfoque, realce, Sobel — o escribe el tuyo. Mira el resultado y su histograma. La imagen no sale de este navegador.">Drop an image, apply a kernel — blur, sharpen, Sobel — or write your own. See the result and its histogram. The image never leaves this browser.</p>
+
+  <div class="prefs">
+    <div class="prefs-label" data-es="Apariencia / Idioma">Appearance / Language</div>
+    <div class="prefs-row">
+      <button class="modetog" id="modetog" type="button" aria-label="Dark or light"></button>
+      <div class="langsw" role="group" aria-label="Language"><button type="button" data-setlang="en">EN</button><button type="button" data-setlang="es">ES</button></div>
+    </div>
+  </div>
+
+
+  <label class="drop" id="drop" for="fileIn">
+    <b data-es="Suelta una imagen aquí">Drop an image here</b>
+    <span data-es="o toca para elegir un archivo · o pega con ⌘V · JPG, PNG, WebP">or tap to choose a file · or paste with ⌘V · JPG, PNG, WebP</span>
+  </label>
+  <input class="vh" id="fileIn" type="file" accept="image/*">
+
+  <div class="bar" id="srcBar">
+    <button class="btn" id="sampleBtn" type="button" data-es="Usar imagen de prueba">Use a test image</button>
+  </div>
+
+  <div class="card" id="viewCard">
+    <div class="pair">
+      <div class="pane">
+        <h2 data-es="Original">Original</h2>
+        <canvas id="before" width="8" height="8"></canvas>
+        <p class="dims" id="dimsBefore">—</p>
+      </div>
+      <div class="pane">
+        <h2 data-es="Filtrada">Filtered</h2>
+        <canvas id="after" width="8" height="8"></canvas>
+        <p class="dims" id="dimsAfter">—</p>
+      </div>
+    </div>
+    <p class="busy" id="busy" role="status" aria-live="polite"></p>
+    <div class="bar">
+      <button class="btn primary" id="dlBtn" type="button" data-es="Descargar PNG">Download PNG</button>
+      <button class="btn danger" id="clrBtn" type="button" data-es="Quitar imagen">Remove image</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="listhead">
+      <h2 data-es="Núcleo">Kernel</h2>
+      <span id="ksum">—</span>
+    </div>
+
+    <div class="presets" id="presets" role="group" aria-label="Kernel presets"></div>
+
+    <p class="kname" id="kname"></p>
+
+    <div class="kwrap">
+      <div class="kgrid" id="kgrid"></div>
+      <div class="kside">
+        <div class="krow">
+          <div class="field">
+            <label for="divIn" data-es="Divisor">Divisor</label>
+            <input id="divIn" type="number" step="any" value="1">
+          </div>
+          <div class="field">
+            <label for="offIn" data-es="Desplazamiento">Offset</label>
+            <input id="offIn" type="number" step="1" value="0">
+          </div>
+        </div>
+        <div class="opts">
+          <button class="opt" id="normBtn" type="button" aria-pressed="true" data-es="Normalizar">Normalise</button>
+          <button class="opt" id="grayBtn" type="button" aria-pressed="false" data-es="Escala de grises">Grayscale</button>
+          <button class="opt" id="absBtn" type="button" aria-pressed="false" data-es="Valor absoluto">Absolute value</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="listhead">
+      <h2 data-es="Histograma">Histogram</h2>
+      <span id="histNote">—</span>
+    </div>
+    <div class="chans" id="chans" role="group" aria-label="Channel">
+      <button type="button" data-ch="luma" aria-pressed="true" data-es="Luminancia">Luma</button>
+      <button type="button" data-ch="r" aria-pressed="false">R</button>
+      <button type="button" data-ch="g" aria-pressed="false">G</button>
+      <button type="button" data-ch="b" aria-pressed="false">B</button>
+    </div>
+    <div class="histbox"><canvas id="hist" width="1024" height="300"></canvas></div>
+    <div class="legend">
+      <span class="a"><i></i><span data-es="Filtrada">Filtered</span></span>
+      <span class="b"><i></i><span data-es="Original">Original</span></span>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <a class="featured" href="https://estebandenecken.github.io/workspace/" target="_blank" rel="noopener">
+    <div class="kicker" data-es="Workspace">Workspace</div>
+    <div class="ttl" data-es="Espacio de productividad">Productivity Workspace</div>
+    <ul class="feats" data-es="<li>Sin cuenta</li><li>Tus datos se quedan en tu dispositivo</li><li>Exportación a Markdown</li><li>Planificación, notas y herramientas de foco, integradas</li>"><li>No account required</li><li>Your data stays on your device</li><li>Markdown export</li><li>Integrated planning, notes, and focus tools</li></ul>
+  </a>
+
+  <a class="tip-button"
+     href="https://ko-fi.com/estebandenecken"
+     target="_blank" rel="noopener"
+     data-es="❤️ Invítame un café">❤️ Buy me a coffee</a>
+
+  <div class="note" data-es="<b>Una convolución es una media ponderada de los vecinos de cada píxel.</b> El núcleo es la tabla de pesos: se centra sobre un píxel, se multiplica cada peso por el valor que tiene debajo, se suman los productos y ese total —dividido por el divisor y desplazado por el offset— es el píxel de salida. Todo lo demás son variaciones de esos pesos. Un núcleo de solo positivos que suma 1 promedia y desenfoca; uno con centro positivo y bordes negativos amplifica las diferencias locales y realza.">
+    <b>A convolution is a weighted average of each pixel's neighbours.</b> The kernel is the table of weights: centre it on a pixel, multiply each weight by the value underneath, add the products, and that total — divided by the divisor and shifted by the offset — is the output pixel. Everything else is a variation on those weights. An all-positive kernel summing to 1 averages, and blurs; a positive centre with negative edges amplifies local differences, and sharpens.
+  </div>
+
+  <div class="note" data-es="<b>Los núcleos de borde suman cero, y por eso necesitan valor absoluto.</b> Sobel y el laplaciano responden al cambio, no al brillo: sobre una zona plana los pesos se cancelan y devuelven cero, es decir negro. En un borde devuelven un número grande, positivo o negativo según la dirección del cambio. Sin <b>Valor absoluto</b> la mitad de esos bordes se recorta a negro y solo ves la mitad de la estructura. El divisor de estos núcleos es 1: normalizarlos por una suma de cero no tiene sentido.">
+    <b>Edge kernels sum to zero, which is why they need absolute value.</b> Sobel and the Laplacian respond to change, not to brightness: over a flat region the weights cancel and return zero, meaning black. At an edge they return a large number, positive or negative depending on which way the change runs. Without <b>Absolute value</b> half of those edges clip to black and you see only half the structure. The divisor for these kernels is 1 — normalising by a sum of zero is meaningless.
+  </div>
+
+  <div class="note" data-es="<b>Lee el histograma junto a la imagen.</b> Es el recuento de píxeles en cada uno de los 256 niveles, y el contorno dorado muestra dónde estaba el original. Desenfocar estrecha la distribución hacia la media; realzar la ensancha y empuja masa hacia los extremos, donde se recorta y se pierde información sin remedio. Un núcleo de borde vacía casi todo el rango y amontona los píxeles cerca de cero, porque la mayor parte de una imagen normal es plana.">
+    <b>Read the histogram next to the image.</b> It's the pixel count at each of the 256 levels, and the gold outline shows where the original sat. Blurring narrows the distribution toward the mean; sharpening widens it and pushes mass to the ends, where it clips and the information is gone for good. An edge kernel empties most of the range and piles pixels near zero, because most of an ordinary image is flat.
+  </div>
+
+  <div class="note" data-es="<b>Nada se sube a ninguna parte.</b> El archivo se lee con la API de archivos del navegador, se dibuja en un canvas y se procesa en esta pestaña. No hay servidor y no se guarda la imagen: al recargar, la página vuelve vacía. Las imágenes grandes se reducen a 1400 px de lado para que el filtrado sea inmediato.">
+    <b>Nothing is uploaded anywhere.</b> The file is read with the browser's file API, drawn to a canvas and processed in this tab. There's no server and the image isn't saved: reload and the page comes back empty. Large images are scaled to 1400 px on the long side so filtering stays instant.
+  </div>
+
+
+  <footer><p data-es="<a href=&quot;../index.html&quot;>estebandenecken</a> · la imagen no sale de este dispositivo"><a href="../index.html">estebandenecken</a> · the image never leaves this device</p></footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var MAXDIM = 1400;   // long side after scaling; keeps a 3x3 pass under a frame or two
+
+  // Strings this tool builds in JavaScript, rather than in the markup.
+  function T(en, es){
+    return (window.toolboxLang && window.toolboxLang.t) ? window.toolboxLang.t(en, es) : en;
+  }
+
+  // size 3 unless stated; norm/gray/abs are the defaults a preset switches on
+  var PRESETS = [
+    { id:"identity", en:"Identity", es:"Identidad", k:[0,0,0, 0,1,0, 0,0,0], norm:true,
+      noteEn:"Nothing happens — every weight but the centre is zero. A useful baseline.",
+      noteEs:"No pasa nada — todos los pesos salvo el centro son cero. Útil como referencia." },
+    { id:"box", en:"Box blur", es:"Media 3×3", k:[1,1,1, 1,1,1, 1,1,1], norm:true,
+      noteEn:"A flat average of nine pixels. Cheap, and visibly square in the smear it leaves.",
+      noteEs:"Media plana de nueve píxeles. Barata, y deja un emborronado visiblemente cuadrado." },
+    { id:"gauss3", en:"Gaussian 3×3", es:"Gaussiano 3×3", k:[1,2,1, 2,4,2, 1,2,1], norm:true,
+      noteEn:"Weights fall off from the centre, so the blur is smooth instead of blocky.",
+      noteEs:"Los pesos caen desde el centro, así el desenfoque es suave en vez de cuadriculado." },
+    { id:"gauss5", en:"Gaussian 5×5", es:"Gaussiano 5×5", size:5,
+      k:[1,4,6,4,1, 4,16,24,16,4, 6,24,36,24,6, 4,16,24,16,4, 1,4,6,4,1], norm:true,
+      noteEn:"The same shape over a wider window — a stronger blur, at 25 multiplies per pixel.",
+      noteEs:"La misma forma en una ventana más ancha — desenfoque más fuerte, 25 productos por píxel." },
+    { id:"sharpen", en:"Sharpen", es:"Realce", k:[0,-1,0, -1,5,-1, 0,-1,0], norm:true,
+      noteEn:"Centre pulled up, neighbours pushed down. Sums to 1, so overall brightness holds.",
+      noteEs:"Centro hacia arriba, vecinos hacia abajo. Suma 1, así que el brillo general se mantiene." },
+    { id:"sobelx", en:"Sobel X", es:"Sobel X", k:[-1,0,1, -2,0,2, -1,0,1], norm:false, gray:true, abs:true,
+      noteEn:"The horizontal derivative: it lights up vertical edges and ignores horizontal ones.",
+      noteEs:"La derivada horizontal: enciende los bordes verticales e ignora los horizontales." },
+    { id:"sobely", en:"Sobel Y", es:"Sobel Y", k:[-1,-2,-1, 0,0,0, 1,2,1], norm:false, gray:true, abs:true,
+      noteEn:"The vertical derivative — the same operator turned ninety degrees.",
+      noteEs:"La derivada vertical — el mismo operador girado noventa grados." },
+    { id:"sobel", en:"Sobel magnitude", es:"Sobel magnitud", k:[-1,0,1, -2,0,2, -1,0,1], norm:false, gray:true, abs:true, mag:true,
+      noteEn:"√(Gx² + Gy²) — both derivatives combined, so edges show up whichever way they run. The matrix is fixed for this one.",
+      noteEs:"√(Gx² + Gy²) — las dos derivadas combinadas, así los bordes aparecen en cualquier dirección. Para este la matriz es fija." },
+    { id:"laplacian", en:"Laplacian", es:"Laplaciano", k:[0,1,0, 1,-4,1, 0,1,0], norm:false, gray:true, abs:true,
+      noteEn:"The second derivative. One kernel, no direction — and much noisier than Sobel.",
+      noteEs:"La segunda derivada. Un solo núcleo, sin dirección — y bastante más ruidoso que Sobel." },
+    { id:"outline", en:"Outline", es:"Contorno", k:[-1,-1,-1, -1,8,-1, -1,-1,-1], norm:false, abs:true,
+      noteEn:"Every neighbour against the centre. Sums to zero, so flat areas go black.",
+      noteEs:"Todos los vecinos contra el centro. Suma cero, así que las zonas planas quedan negras." },
+    { id:"emboss", en:"Emboss", es:"Relieve", k:[-2,-1,0, -1,1,1, 0,1,2], norm:false, off:128,
+      noteEn:"An asymmetric kernel plus an offset of 128 — the sign of the slope becomes light or shadow.",
+      noteEs:"Un núcleo asimétrico más un offset de 128 — el signo de la pendiente se vuelve luz o sombra." }
+  ];
+
+  var SOBEL_Y = [-1,-2,-1, 0,0,0, 1,2,1];
+
+  var st = {
+    preset: "gauss3", size: 3, k: null, div: 1, off: 0,
+    norm: true, gray: false, abs: false, mag: false, ch: "luma"
+  };
+
+  var src = null;      // ImageData of the loaded image, already scaled
+  var outData = null;  // ImageData of the last filtered result
+  var pending = null;
+  var fellBack = false;   // the sample photo was unreadable, so one was drawn
+
+  var beforeC = document.getElementById("before");
+  var afterC  = document.getElementById("after");
+  var histC   = document.getElementById("hist");
+  var dropEl  = document.getElementById("drop");
+  var fileIn  = document.getElementById("fileIn");
+  var kgrid   = document.getElementById("kgrid");
+  var divIn   = document.getElementById("divIn");
+  var offIn   = document.getElementById("offIn");
+  var normBtn = document.getElementById("normBtn");
+  var grayBtn = document.getElementById("grayBtn");
+  var absBtn  = document.getElementById("absBtn");
+  var busyEl  = document.getElementById("busy");
+  var ksumEl  = document.getElementById("ksum");
+  var knameEl = document.getElementById("kname");
+  var statsEl = document.getElementById("stats");
+  var histNote= document.getElementById("histNote");
+  var viewCard= document.getElementById("viewCard");
+
+  // ---- kernel plumbing ----------------------------------------------------
+
+  function preset(id){
+    for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].id === id) return PRESETS[i];
+    return PRESETS[0];
+  }
+
+  function sum(k){
+    var s = 0;
+    for (var i = 0; i < k.length; i++) s += k[i];
+    return s;
+  }
+
+  function buildGrid(){
+    kgrid.innerHTML = "";
+    kgrid.className = "kgrid" + (st.size === 5 ? " k5" : "");
+    var mid = Math.floor(st.size * st.size / 2);
+    for (var i = 0; i < st.size * st.size; i++){
+      var inp = document.createElement("input");
+      inp.type = "number"; inp.step = "any";
+      inp.value = st.k[i];
+      if (i === mid) inp.className = "mid";
+      inp.disabled = !!st.mag;
+      inp.setAttribute("aria-label", "k" + i);
+      (function(idx, el){
+        el.addEventListener("input", function(){
+          var v = parseFloat(el.value);
+          st.k[idx] = isNaN(v) ? 0 : v;
+          st.preset = "custom";
+          markPresets(); syncDivisor(); run();
+        });
+      })(i, inp);
+      kgrid.appendChild(inp);
+    }
+  }
+
+  function syncDivisor(){
+    var s = sum(st.k);
+    ksumEl.textContent = T("sum ", "suma ") + (Math.round(s * 1000) / 1000);
+    if (st.norm){
+      st.div = s || 1;
+      divIn.value = st.div;
+      divIn.disabled = true;
+    } else {
+      divIn.disabled = false;
+    }
+  }
+
+  function applyPreset(id){
+    var p = preset(id);
+    st.preset = p.id;
+    st.size = p.size || 3;
+    st.k = p.k.slice();
+    st.norm = !!p.norm;
+    st.gray = !!p.gray;
+    st.abs  = !!p.abs;
+    st.mag  = !!p.mag;
+    st.off  = p.off || 0;
+    if (!st.norm) st.div = 1;
+    offIn.value = st.off;
+    normBtn.setAttribute("aria-pressed", String(st.norm));
+    grayBtn.setAttribute("aria-pressed", String(st.gray));
+    absBtn.setAttribute("aria-pressed", String(st.abs));
+    buildGrid(); syncDivisor(); markPresets(); describe(); run();
+  }
+
+  function describe(){
+    var p = preset(st.preset);
+    if (st.preset === "custom"){
+      knameEl.innerHTML = "<b>" + T("Your own kernel", "Tu propio núcleo") + ".</b> " +
+        T("Edit any weight and the image updates.", "Edita cualquier peso y la imagen se actualiza.");
+    } else {
+      knameEl.innerHTML = "<b>" + T(p.en, p.es) + ".</b> " + T(p.noteEn, p.noteEs);
+    }
+  }
+
+  function markPresets(){
+    var kids = document.getElementById("presets").children;
+    for (var i = 0; i < kids.length; i++)
+      kids[i].setAttribute("aria-pressed", String(kids[i].getAttribute("data-k") === st.preset));
+  }
+
+  function buildPresets(){
+    var box = document.getElementById("presets");
+    box.innerHTML = "";
+    PRESETS.forEach(function(p){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("data-k", p.id);
+      b.setAttribute("aria-pressed", "false");
+      b.textContent = T(p.en, p.es);
+      b.addEventListener("click", function(){ applyPreset(p.id); });
+      box.appendChild(b);
+    });
+    markPresets();
+  }
+
+  // ---- the convolution ----------------------------------------------------
+
+  // Straight nested loops over a clamped border. Deliberately not the fastest
+  // way to do this — it's the version that reads like the definition.
+  function convolve(img){
+    var w = img.width, h = img.height;
+    var s = img.data;
+    var out = new Uint8ClampedArray(s.length);
+    var n = st.size, r = (n - 1) / 2;
+    var k = st.k, ky = SOBEL_Y;
+    var div = st.div || 1, off = st.off;
+    var gray = st.gray, abs = st.abs, mag = st.mag;
+
+    // Grayscale first if asked, so the kernel sees one channel three times.
+    var base = s;
+    if (gray){
+      base = new Uint8ClampedArray(s.length);
+      for (var i = 0; i < s.length; i += 4){
+        var l = 0.2126 * s[i] + 0.7152 * s[i + 1] + 0.0722 * s[i + 2];
+        base[i] = base[i + 1] = base[i + 2] = l;
+        base[i + 3] = s[i + 3];
+      }
+    }
+
+    for (var y = 0; y < h; y++){
+      for (var x = 0; x < w; x++){
+        var o = (y * w + x) * 4;
+        for (var c = 0; c < 3; c++){
+          var acc = 0, accY = 0, ki = 0;
+          for (var dy = -r; dy <= r; dy++){
+            var yy = y + dy;
+            if (yy < 0) yy = 0; else if (yy >= h) yy = h - 1;   // replicate the border
+            var row = yy * w;
+            for (var dx = -r; dx <= r; dx++){
+              var xx = x + dx;
+              if (xx < 0) xx = 0; else if (xx >= w) xx = w - 1;
+              var v = base[(row + xx) * 4 + c];
+              acc += k[ki] * v;
+              if (mag) accY += ky[ki] * v;
+              ki++;
+            }
+          }
+          var val = mag ? Math.sqrt(acc * acc + accY * accY) / div
+                        : acc / div;
+          if (abs && !mag) val = Math.abs(val);
+          out[o + c] = val + off;
+        }
+        out[o + 3] = s[o + 3];
+      }
+    }
+    return new ImageData(out, w, h);
+  }
+
+  // ---- histogram ----------------------------------------------------------
+
+  function bins(img, ch){
+    var b = new Float64Array(256), d = img.data;
+    for (var i = 0; i < d.length; i += 4){
+      var v;
+      if (ch === "r") v = d[i];
+      else if (ch === "g") v = d[i + 1];
+      else if (ch === "b") v = d[i + 2];
+      else v = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+      b[v < 0 ? 0 : v > 255 ? 255 : Math.round(v)]++;
+    }
+    return b;
+  }
+
+  function css(name, fallback){
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    return (v && v.trim()) || fallback;
+  }
+
+  function drawHist(){
+    var ctx = histC.getContext("2d");
+    var W = histC.width, H = histC.height;
+    ctx.clearRect(0, 0, W, H);
+    if (!src || !outData){ histNote.textContent = "—"; statsEl.innerHTML = ""; return; }
+
+    var a = bins(outData, st.ch), b = bins(src, st.ch);
+    var peak = 0, i;
+    for (i = 0; i < 256; i++){ if (a[i] > peak) peak = a[i]; if (b[i] > peak) peak = b[i]; }
+    if (!peak) peak = 1;
+
+    // A square root makes the tails legible without hiding the peak.
+    function y(v){ return H - Math.sqrt(v / peak) * (H - 6) - 3; }
+    var bw = W / 256;
+
+    ctx.fillStyle = css("--cyan", "#17B4D8");
+    for (i = 0; i < 256; i++){
+      var yy = y(a[i]);
+      if (yy < H - 3) ctx.fillRect(i * bw, yy, Math.max(1, bw - 0.4), H - yy - 3);
+    }
+
+    ctx.strokeStyle = css("--gold", "#FCC615");
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (i = 0; i < 256; i++){
+      var px = i * bw + bw / 2, py = y(b[i]);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    histNote.textContent = "256 " + T("levels", "niveles") + " · " +
+      (st.ch === "luma" ? T("luminance", "luminancia") : st.ch.toUpperCase());
+
+    statsEl.innerHTML = "";
+    [[T("Original", "Original"), b], [T("Filtered", "Filtrada"), a]].forEach(function(pair){
+      var m = stat(pair[1]);
+      var s = document.createElement("span");
+      s.innerHTML = pair[0] + " · <b>" + T("mean ", "media ") + m.mean.toFixed(1) + "</b> · " +
+                    T("sd ", "desv ") + m.sd.toFixed(1) + " · " +
+                    T("clipped ", "recortado ") + m.clip.toFixed(1) + "%";
+      statsEl.appendChild(s);
+    });
+  }
+
+  function stat(b){
+    var n = 0, s = 0, i;
+    for (i = 0; i < 256; i++){ n += b[i]; s += b[i] * i; }
+    if (!n) return { mean:0, sd:0, clip:0 };
+    var mean = s / n, v = 0;
+    for (i = 0; i < 256; i++) v += b[i] * (i - mean) * (i - mean);
+    return { mean: mean, sd: Math.sqrt(v / n), clip: (b[0] + b[255]) / n * 100 };
+  }
+
+  // ---- running it ---------------------------------------------------------
+
+  function run(){
+    if (!src) return;
+    busyEl.textContent = T("Filtering…", "Filtrando…");
+    if (pending) clearTimeout(pending);
+    // One frame for the label to paint before the main thread is tied up.
+    pending = setTimeout(function(){
+      pending = null;
+      var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+      outData = convolve(src);
+      afterC.getContext("2d").putImageData(outData, 0, 0);
+      var t1 = (window.performance && performance.now) ? performance.now() : Date.now();
+      drawHist();
+      busyEl.textContent = st.size + "×" + st.size + " · " +
+        (src.width * src.height / 1e6).toFixed(1) + " MP · " + Math.round(t1 - t0) + " ms";
+      document.getElementById("dimsAfter").textContent =
+        src.width + " × " + src.height + " px";
+    }, 30);
+  }
+
+  // ---- loading an image ---------------------------------------------------
+
+  function useImage(img){
+    var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    if (!w || !h) return;
+    var scale = Math.min(1, MAXDIM / Math.max(w, h));
+    w = Math.max(1, Math.round(w * scale));
+    h = Math.max(1, Math.round(h * scale));
+
+    beforeC.width = afterC.width = w;
+    beforeC.height = afterC.height = h;
+    var bctx = beforeC.getContext("2d");
+    bctx.clearRect(0, 0, w, h);
+    bctx.drawImage(img, 0, 0, w, h);
+    try{
+      src = bctx.getImageData(0, 0, w, h);
+    }catch(e){
+      // Opened straight off the disk, a browser treats a local file as
+      // cross-origin and refuses to read the pixels back. Draw one instead.
+      if (!fellBack){ fellBack = true; synthetic(); return; }
+      busyEl.textContent = T("That image couldn't be read.", "No se pudo leer esa imagen.");
+      return;
+    }
+    document.getElementById("dimsBefore").textContent = w + " × " + h + " px" +
+      (scale < 1 ? T(" · scaled down", " · reducida") : "");
+    viewCard.classList.remove("hidden");
+    run();
+  }
+
+  function readFile(file){
+    fellBack = false;
+    if (!file || !/^image\//.test(file.type)){
+      busyEl.textContent = T("That's not an image file.", "Ese archivo no es una imagen.");
+      return;
+    }
+    var fr = new FileReader();
+    fr.onload = function(){
+      var img = new Image();
+      img.onload = function(){ useImage(img); };
+      img.onerror = function(){ busyEl.textContent = T("That image couldn't be read.", "No se pudo leer esa imagen."); };
+      img.src = fr.result;
+    };
+    fr.onerror = function(){ busyEl.textContent = T("That file couldn't be read.", "No se pudo leer ese archivo."); };
+    fr.readAsDataURL(file);
+  }
+
+  // The button loads a real photograph. Cables and towers give the edge
+  // kernels thin high-contrast lines to find, the hills carry fine texture,
+  // and the sky is a flat region where a zero-sum kernel should return
+  // nothing at all — which is the comparison worth seeing.
+  function sample(){
+    busyEl.textContent = T("Loading…", "Cargando…");
+    var img = new Image();
+    img.onload  = function(){ useImage(img); };
+    img.onerror = synthetic;                  // if the file isn't there, draw one
+    img.src = "../images/Golden.png";
+  }
+
+  // The backstop: a Golden Gate-ish suspension bridge in flat greys, drawn
+  // here rather than fetched, so the tool is never empty. Every piece earns
+  // its place. The towers give hard vertical and horizontal edges, the cables
+  // give long smooth curves, the hangers are a regular comb of thin
+  // high-contrast lines, the water carries fine repeating texture, and the
+  // sky is a nearly flat region where a zero-sum kernel should return almost
+  // nothing — which is the comparison worth seeing.
+  function synthetic(){
+    var w = 900, h = 600;
+    var c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    var g = c.getContext("2d");
+
+    var WATER = 430, DECK = 392, TOP = 90, SAG = 344;
+    var TOWERS = [250, 650];
+
+    // Cable height at a given x: one parabola between the towers and one for
+    // each side span. The hangers read from the same functions, so they meet
+    // the cable exactly instead of being eyeballed.
+    function midY(x){ return SAG - 0.00635 * (x - 450) * (x - 450); }
+    function leftY(x){ return TOP + 0.00326 * (TOWERS[0] - x) * (TOWERS[0] - x); }
+    function rightY(x){ return TOP + 0.00326 * (x - TOWERS[1]) * (x - TOWERS[1]); }
+
+    function curve(fn, x0, x1){
+      g.beginPath();
+      for (var x = x0; x <= x1; x += 4){
+        if (x === x0) g.moveTo(x, fn(x)); else g.lineTo(x, fn(x));
+      }
+      g.stroke();
+    }
+
+    function hangers(fn, x0, x1){
+      for (var x = x0; x <= x1; x += 26){
+        var top = fn(x);
+        if (top >= DECK - 8) continue;
+        g.beginPath();
+        g.moveTo(x + 0.5, top);
+        g.lineTo(x + 0.5, DECK);
+        g.stroke();
+      }
+    }
+
+    // sky — the flat region
+    var sky = g.createLinearGradient(0, 0, 0, WATER);
+    sky.addColorStop(0, "#f2f2f2");
+    sky.addColorStop(1, "#cdcdcd");
+    g.fillStyle = sky;
+    g.fillRect(0, 0, w, WATER);
+
+    // One continuous headland, flat grey so the skyline stays a clean edge.
+    // It dips to a saddle mid-frame for the strait rather than breaking in
+    // two, which would leave a bright wedge of sky that reads as a mistake.
+    g.fillStyle = "#9b9b9b";
+    g.beginPath();
+    g.moveTo(0, WATER); g.lineTo(0, 318);
+    // The saddle stops just under the deck's lower edge (DECK + 16), so the
+    // deck covers the join and no hairline of sky can show through it.
+    var ridge = [[130,262],[255,328],[350,300],[430,404],[505,406],
+                 [585,332],[672,316],[792,252],[900,306]];
+    for (var r = 0; r < ridge.length; r++) g.lineTo(ridge[r][0], ridge[r][1]);
+    g.lineTo(w, WATER); g.closePath(); g.fill();
+
+    // water, then a staggered comb of ripples for fine texture
+    g.fillStyle = "#767676";
+    g.fillRect(0, WATER, w, h - WATER);
+    g.fillStyle = "#5e5e5e";
+    for (var y = WATER + 12, row = 0; y < h; y += 10, row++){
+      for (var x = (row % 2 ? 30 : 0); x < w; x += 56) g.fillRect(x, y, 34, 3);
+    }
+
+    // main cables
+    g.strokeStyle = "#1b1b1b";
+    g.lineWidth = 5;
+    curve(leftY, 0, TOWERS[0]);
+    curve(midY, TOWERS[0], TOWERS[1]);
+    curve(rightY, TOWERS[1], w);
+
+    // hangers
+    g.strokeStyle = "#242424";
+    g.lineWidth = 2;
+    hangers(leftY, 22, TOWERS[0] - 26);
+    hangers(midY, TOWERS[0] + 26, TOWERS[1] - 26);
+    hangers(rightY, TOWERS[1] + 26, w - 22);
+
+    // anchorages, so the cables land on something instead of leaving frame
+    g.fillStyle = "#2f2f2f";
+    g.fillRect(0, leftY(0) - 6, 34, DECK - leftY(0) + 6);
+    g.fillRect(w - 34, rightY(w) - 6, 34, DECK - rightY(w) + 6);
+
+    // deck
+    g.fillStyle = "#333333";
+    g.fillRect(0, DECK, w, 11);
+    g.fillStyle = "#4b4b4b";
+    g.fillRect(0, DECK + 11, w, 5);
+
+    // towers: two legs and four crossbeams each, nothing fancier
+    for (var t = 0; t < TOWERS.length; t++){
+      var tx = TOWERS[t];
+      g.fillStyle = "#242424";
+      g.fillRect(tx - 21, TOP, 13, WATER - TOP);
+      g.fillRect(tx + 8, TOP, 13, WATER - TOP);
+      var beams = [TOP + 2, TOP + 76, TOP + 170, TOP + 264];
+      for (var b = 0; b < beams.length; b++) g.fillRect(tx - 21, beams[b], 42, 10);
+    }
+
+    var img = new Image();
+    img.onload = function(){ useImage(img); };
+    img.src = c.toDataURL("image/png");
+  }
+
+  // ---- wiring -------------------------------------------------------------
+
+  buildPresets();
+  applyPreset("gauss3");
+  viewCard.classList.add("hidden");
+
+  fileIn.addEventListener("change", function(){
+    if (fileIn.files && fileIn.files[0]) readFile(fileIn.files[0]);
+    fileIn.value = "";
+  });
+
+  ["dragenter", "dragover"].forEach(function(ev){
+    dropEl.addEventListener(ev, function(e){ e.preventDefault(); dropEl.classList.add("over"); });
+  });
+  ["dragleave", "drop"].forEach(function(ev){
+    dropEl.addEventListener(ev, function(e){ e.preventDefault(); dropEl.classList.remove("over"); });
+  });
+  dropEl.addEventListener("drop", function(e){
+    var dt = e.dataTransfer;
+    if (dt && dt.files && dt.files[0]) readFile(dt.files[0]);
+  });
+  window.addEventListener("dragover", function(e){ e.preventDefault(); });
+  window.addEventListener("drop", function(e){ e.preventDefault(); });
+
+  document.addEventListener("paste", function(e){
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++){
+      if (items[i].type && items[i].type.indexOf("image") === 0){
+        readFile(items[i].getAsFile());
+        e.preventDefault();
+        return;
+      }
+    }
+  });
+
+  document.getElementById("sampleBtn").addEventListener("click", sample);
+
+  document.getElementById("clrBtn").addEventListener("click", function(){
+    src = null; outData = null;
+    viewCard.classList.add("hidden");
+    busyEl.textContent = "";
+    statsEl.innerHTML = "";
+    histC.getContext("2d").clearRect(0, 0, histC.width, histC.height);
+  });
+
+  document.getElementById("dlBtn").addEventListener("click", function(){
+    if (!outData) return;
+    var btn = this, old = btn.textContent;
+    afterC.toBlob(function(blob){
+      if (!blob) return;
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "convolution-" + st.preset + ".png";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+      btn.textContent = T("Downloaded ✓", "Descargado ✓");
+      setTimeout(function(){ btn.textContent = old; }, 1300);
+    }, "image/png");
+  });
+
+  normBtn.addEventListener("click", function(){
+    st.norm = !st.norm;
+    normBtn.setAttribute("aria-pressed", String(st.norm));
+    if (!st.norm){ st.div = parseFloat(divIn.value) || 1; }
+    syncDivisor(); run();
+  });
+  grayBtn.addEventListener("click", function(){
+    st.gray = !st.gray;
+    grayBtn.setAttribute("aria-pressed", String(st.gray));
+    run();
+  });
+  absBtn.addEventListener("click", function(){
+    st.abs = !st.abs;
+    absBtn.setAttribute("aria-pressed", String(st.abs));
+    run();
+  });
+
+  divIn.addEventListener("input", function(){
+    var v = parseFloat(divIn.value);
+    st.div = (isNaN(v) || v === 0) ? 1 : v;
+    run();
+  });
+  offIn.addEventListener("input", function(){
+    var v = parseFloat(offIn.value);
+    st.off = isNaN(v) ? 0 : v;
+    run();
+  });
+
+  var chans = document.getElementById("chans").children;
+  for (var ci = 0; ci < chans.length; ci++){
+    (function(btn){
+      btn.addEventListener("click", function(){
+        st.ch = btn.getAttribute("data-ch");
+        for (var j = 0; j < chans.length; j++)
+          chans[j].setAttribute("aria-pressed", String(chans[j] === btn));
+        drawHist();
+      });
+    })(chans[ci]);
+  }
+
+  window.addEventListener("langchange", function(){
+    buildPresets(); describe(); syncDivisor(); drawHist();
+  });
+})();
+</script>
+<script>
+/* Dark / light toggle. Writes the same saved choice every other page reads.
+   The icon shows what you would switch to, not what you are in. */
+(function(){
+  "use strict";
+  var T   = window.toolboxTheme;
+  var tog = document.getElementById("modetog");
+  if (!T || !tog) return;
+
+  var MOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 13.3A9 9 0 1 1 10.7 3a7 7 0 0 0 10.3 10.3z"/></svg>';
+  var SUN  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M11 1h2v3.2h-2zm0 18.8h2V23h-2zM1 11h3.2v2H1zm18.8 0H23v2h-3.2zM3.9 5.3l1.4-1.4 2.3 2.3-1.4 1.4zm12.5 12.5l1.4-1.4 2.3 2.3-1.4 1.4zM18.7 3.9l1.4 1.4-2.3 2.3-1.4-1.4zM6.2 16.4l1.4 1.4-2.3 2.3-1.4-1.4z"/></svg>';
+
+  function T2(en, es){
+    return (window.toolboxLang && window.toolboxLang.current() === "es") ? es : en;
+  }
+
+  function sync(){
+    var dark = T.mode() === "dark";
+    tog.innerHTML = dark ? SUN : MOON;
+    var label = dark ? T2("Switch to light mode", "Cambiar a modo claro")
+                     : T2("Switch to dark mode",  "Cambiar a modo oscuro");
+    tog.title = label;
+    tog.setAttribute("aria-label", label);
+  }
+
+  tog.addEventListener("click", function(){ T.toggleMode(); sync(); });
+  window.addEventListener("langchange", sync);
+
+  sync();
+})();
+</script>
+</body>
+</html>

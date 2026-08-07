@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; media-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="canonical" href="https://estebandenecken.github.io/app-demos/decide.html">
+<meta property="og:image" content="https://estebandenecken.github.io/images/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://estebandenecken.github.io/app-demos/decide.html">
+<meta property="og:site_name" content="Esteban Denecken">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="version" content="26.2">
+<title>To-do Roulette: Break Decision Paralysis — Esteban Denecken</title>
+<meta name="description" content="A to-do list with a colour wheel that picks one task at random. For when choosing what to do costs more than doing it.">
+<meta property="og:title" content="To-do Roulette: Break Decision Paralysis — Esteban Denecken">
+<meta property="og:description" content="A to-do list with a colour wheel that picks one task at random. For when choosing what to do costs more than doing it.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23000116'/><text y='72' x='50' text-anchor='middle' font-size='58' font-family='Helvetica,sans-serif' font-weight='bold' fill='%2317B4D8'>ED</text></svg>">
+<link rel="icon" type="image/png" sizes="32x32" href="../images/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../images/apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Decide">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000116">
+<style>
+:root{
+  --navy:#000116; --cyan:#17B4D8; --gray:#EAEBEC;
+  --teal:#0A7FA3; --gold:#FCC615; --olive:#685C38;
+  --mint:#2FE6B0; --coral:#FF6B6B; --sunset:#FF9F45;
+  --card:#0a0d22; --border:#1c2340; --muted:#8b93ad;
+  --well:#070a1c; --hover:#0d1230;
+  --wheel-sat:70; --wheel-light:57;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--navy); color:var(--gray);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+  line-height:1.6; min-height:100vh; padding:28px 20px 60px;
+  display:flex; flex-direction:column; align-items:center;
+  background-image:radial-gradient(ellipse 80% 45% at 50% -5%, color-mix(in srgb, var(--cyan) 12%, transparent), transparent 70%);
+}
+.wrap{width:100%;max-width:900px}
+/* framed so it's a real target for a thumb, not a line of text */
+.back{
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;
+  background:var(--card);border:1px solid var(--border);border-radius:11px;
+  padding:0 18px;min-height:46px;margin-bottom:22px;
+  transition:border-color .15s,color .15s,background .15s,transform .06s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.back:hover{color:var(--cyan);border-color:var(--cyan);background:var(--hover)}
+.back:active{transform:translateY(1px)}
+h1{font-size:24px;letter-spacing:-.3px;margin-bottom:4px}
+.sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px}
+
+/* ---- wheel ---- */
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}
+.wheelbox{position:relative;width:100%;max-width:330px;margin:0 auto;aspect-ratio:1/1}
+#wheel{
+  width:100%;height:100%;display:block;
+  transition:transform 4.4s cubic-bezier(.16,.72,.16,1);
+  filter:drop-shadow(0 6px 22px rgba(0,0,0,.5));
+}
+.wheelbox .pin{
+  position:absolute;top:-6px;left:50%;transform:translateX(-50%);
+  width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;
+  border-top:20px solid var(--gold);
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));z-index:2;
+}
+.wheelbox .hub{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:19%;height:19%;border-radius:50%;
+  background:var(--navy);border:2px solid var(--border);z-index:2;
+}
+.result{text-align:center}
+.result .lbl{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--olive);font-weight:800}
+.result .pick{
+  font-size:24px;font-weight:750;line-height:1.3;letter-spacing:-.3px;margin:6px 0 4px;
+  min-height:32px;word-break:break-word;
+}
+.result .hint{font-size:13px;color:var(--muted)}
+.spin{
+  width:100%;max-width:280px;margin:16px auto 0;display:block;
+  background:var(--gold);border:1px solid var(--gold);color:var(--navy);
+  border-radius:12px;padding:14px 20px;font:inherit;font-size:17px;font-weight:800;
+  letter-spacing:.3px;cursor:pointer;transition:filter .15s,transform .06s;touch-action:manipulation;
+}
+.spin:hover:not(:disabled){filter:brightness(1.1)}
+.spin:active:not(:disabled){transform:translateY(1px)}
+.spin:disabled{opacity:.4;cursor:not-allowed}
+.soundrow{display:flex;justify-content:center;margin-top:10px}
+.snd{
+  background:transparent;border:1px solid var(--border);color:var(--olive);
+  border-radius:8px;padding:5px 13px;font:inherit;font-size:11.5px;font-weight:700;
+  letter-spacing:.5px;cursor:pointer;transition:.15s;touch-action:manipulation;
+}
+.snd:hover{border-color:var(--teal);color:var(--muted)}
+.snd[aria-pressed="true"]{color:var(--muted);border-color:var(--teal)}
+
+/* ---- add row ---- */
+.addrow{display:flex;gap:9px;margin-bottom:12px}
+#task{
+  flex:1;min-width:0;background:var(--well);border:1px solid var(--border);border-radius:10px;
+  color:var(--gray);font:inherit;font-size:15px;padding:12px 14px;
+}
+#task:focus{outline:none;border-color:var(--cyan)}
+#task::placeholder{color:var(--olive)}
+#task:disabled{opacity:.5}
+.addbtn{
+  flex:0 0 auto;background:var(--cyan);border:1px solid var(--cyan);color:var(--navy);
+  border-radius:10px;padding:12px 20px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;
+  transition:filter .15s;touch-action:manipulation;
+}
+.addbtn:hover:not(:disabled){filter:brightness(1.12)}
+.addbtn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ---- list ---- */
+.listhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;gap:12px}
+.listhead h2{font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.listhead span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+#list{list-style:none}
+#list li{
+  display:flex;align-items:center;gap:11px;padding:10px 12px;margin-bottom:6px;
+  background:var(--well);border:1px solid var(--border);border-left-width:5px;border-radius:10px;
+  transition:border-color .15s,background .15s;
+}
+#list li.won{background:color-mix(in srgb, var(--gold) 8%, transparent);border-color:var(--gold)}
+#list li .num{
+  flex:0 0 auto;width:15px;height:15px;border-radius:50%;
+  border:1.5px solid transparent;
+}
+#list li .txt{flex:1;min-width:0;font-size:15px;word-break:break-word}
+#list li.done .txt{color:var(--olive);text-decoration:line-through}
+#list li.done{border-left-color:var(--border) !important;opacity:.7}
+#list li .x{
+  flex:0 0 auto;background:transparent;border:1px solid var(--border);color:var(--muted);
+  border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;transition:.15s;
+  touch-action:manipulation;
+}
+#list li .x:hover{border-color:var(--coral);color:var(--coral)}
+#list li .tick{
+  flex:0 0 auto;background:transparent;border:1px solid var(--border);color:var(--muted);
+  border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;transition:.15s;
+  touch-action:manipulation;
+}
+#list li .tick:hover{border-color:var(--mint);color:var(--mint)}
+#list li.done .tick{border-color:var(--mint);color:var(--mint)}
+.empty{color:var(--olive);font-size:13.5px;padding:4px 2px}
+
+.bar{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+.btn{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:10px;padding:10px 15px;font:inherit;font-size:13.5px;cursor:pointer;transition:.15s;touch-action:manipulation}
+.btn:hover{border-color:var(--cyan);color:var(--gray)}
+.btn.danger:hover{border-color:var(--coral);color:var(--coral)}
+
+.note{margin-top:20px;padding:15px 17px;border-left:3px solid var(--teal);background:color-mix(in srgb, var(--teal) 8%, transparent);border-radius:0 10px 10px 0;color:var(--muted);font-size:13.5px}
+.note b{color:var(--gray)}
+.note code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:var(--cyan)}
+/* ---- end-of-page calls to action ---- */
+/* Same shapes as the landing page, so a visitor who arrives straight on a demo
+   still sees the toolbox and the tip jar in a form they'll recognise there. */
+.featured{
+  display:block;text-decoration:none;border-radius:14px;padding:18px 20px;
+  margin-top:30px;
+  background:linear-gradient(120deg,color-mix(in srgb, var(--cyan) 13%, transparent),color-mix(in srgb, var(--cyan) 4%, transparent));
+  border:1px solid color-mix(in srgb, var(--cyan) 42%, transparent);
+  transition:transform .15s ease, border-color .15s ease;
+}
+.featured:hover{transform:translateY(-2px);border-color:var(--cyan)}
+.featured .kicker{color:var(--cyan);font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase}
+.featured .ttl{color:var(--gray);font-size:17px;font-weight:650;margin-top:5px}
+.featured .feats{list-style:none;margin:11px 0 0;padding:0}
+.featured .feats li{
+  color:var(--muted);font-size:13px;line-height:1.5;
+  padding-left:19px;position:relative;
+}
+.featured .feats li + li{margin-top:3px}
+.featured .feats li::before{
+  content:"\2713";position:absolute;left:0;top:0;
+  color:var(--cyan);font-weight:700;
+}
+.tip-button{
+  display:block;text-align:center;text-decoration:none;
+  background:var(--card);color:var(--gray);
+  border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  font-size:14px;font-weight:600;letter-spacing:.3px;
+  border-radius:12px;padding:12px 20px;margin:12px 0 0;
+  transition:transform .15s ease, border-color .15s ease, background .15s ease;
+}
+.tip-button:hover{transform:translateY(-2px);border-color:var(--gold);background:var(--hover)}
+footer{margin-top:34px;text-align:center;color:var(--muted);font-size:12.5px}
+footer a{color:var(--teal);text-decoration:none}
+
+@media(max-width:720px){
+  body{padding:22px 14px 50px}
+  .stage{grid-template-columns:1fr;gap:14px}
+  .wheelbox{max-width:290px}
+  .result .pick{font-size:21px}
+  #task{font-size:16px}   /* 16px stops iOS zooming on focus */
+}
+@media(prefers-reduced-motion:reduce){
+  #wheel{transition:transform .6s ease-out}
+}
+
+/* ---- language switch ---- */
+.topline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.topline .back{margin-bottom:0}
+.langsw{display:flex;gap:6px;margin-left:auto}
+.langsw button{
+  background:var(--well,#070a1c);border:1px solid var(--border);color:var(--muted);
+  border-radius:11px;min-height:46px;padding:0 15px;font:inherit;font-size:13px;font-weight:800;
+  letter-spacing:.6px;cursor:pointer;transition:.15s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.langsw button:hover{border-color:var(--cyan);color:var(--gray)}
+.langsw button[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan);color:var(--navy)}
+/* ---- appearance / language ---- */
+.prefs{margin:26px 0 22px}
+.prefs-label{
+  font-size:11px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--muted);font-weight:700;margin:0 4px 12px;
+}
+.prefs-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.modetog{
+  display:flex;align-items:center;justify-content:center;
+  width:38px;height:38px;flex:none;
+  background:var(--well);border:1px solid var(--border);color:var(--muted);
+  border-radius:11px;cursor:pointer;transition:.15s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.modetog svg{width:16px;height:16px;fill:currentColor}
+.modetog:hover{border-color:var(--cyan);color:var(--gray)}
+.prefs .langsw{margin-left:auto}
+/* ---- no JavaScript ---- */
+.nojs{
+  max-width:560px;margin:0 auto 22px;padding:14px 18px;border-radius:12px;
+  background:color-mix(in srgb, var(--gold) 10%, transparent);
+  border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  color:var(--gray);font-size:14px;line-height:1.55;
+}
+</style>
+<script>
+/* Theme runtime. One palette — Deep Navy — in a dark mode and a light one.
+   Runs before first paint so there's no flash of the wrong colours. The mode
+   is saved once and every page on the site reads the same choice. */
+(function(){
+  "use strict";
+  var MKEY = "estebandenecken.mode.v1";
+
+  var MODES = {
+    dark: {
+      navy:"#000116", card:"#0a0d22", well:"#070a1c", hover:"#0d1230",
+      border:"#1c2340", gray:"#EAEBEC", muted:"#8b93ad", olive:"#7C8AA8",
+      cyan:"#17B4D8", teal:"#3FA0C4", gold:"#FCC615",
+      mint:"#2FE6B0", coral:"#FF6B6B", sunset:"#FF9F45",
+      "wheel-sat":"70", "wheel-light":"57"
+    },
+    light: {
+      navy:"#EDF1F7", card:"#FBFCFE", well:"#DFE7F1", hover:"#E2EAF4",
+      border:"#C3D0E0", gray:"#0E1726", muted:"#4A5B72", olive:"#586A82",
+      cyan:"#0A6A88", teal:"#1A6580", gold:"#7D5804",
+      mint:"#0B6A54", coral:"#A8372F", sunset:"#96530C",
+      "wheel-sat":"55", "wheel-light":"38"
+    }
+  };
+
+  function apply(mode){
+    var p = MODES[mode], s = document.documentElement.style, k;
+    for (k in p){ s.setProperty("--" + k, p[k]); }
+    document.documentElement.setAttribute("data-color-mode", mode);
+    /* Tells the browser which way to paint scrollbars and form controls. */
+    document.documentElement.style.colorScheme = mode;
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", p.navy);
+  }
+
+  function savedMode(){
+    try{
+      var v = localStorage.getItem(MKEY);
+      if (v === "dark" || v === "light") return v;
+    }catch(e){}
+    return "dark";
+  }
+
+  apply(savedMode());
+
+  window.toolboxTheme = {
+    mode: savedMode,
+    colors: function(){ return MODES[savedMode()]; },
+    setMode: function(m){
+      if (m !== "dark" && m !== "light") return;
+      try{ localStorage.setItem(MKEY, m); }catch(e){}
+      apply(m);
+    },
+    toggleMode: function(){ this.setMode(savedMode() === "dark" ? "light" : "dark"); }
+  };
+})();
+</script>
+
+
+<script>
+/* Language runtime. Shaped like the palette one: the choice is saved once and
+   every page reads it before the body renders. Anything carrying a data-es
+   attribute gets swapped; the English stays in the markup as the fallback. */
+(function(){
+  "use strict";
+  var KEY = "estebandenecken.lang.v1";
+  var ATTRS = {"data-es-ph":"placeholder", "data-es-aria":"aria-label", "data-es-title":"title"};
+
+  function saved(){
+    try{
+      var v = localStorage.getItem(KEY);
+      if (v === "es" || v === "en") return v;
+    }catch(e){}
+    return "en";
+  }
+  var lang = saved();
+
+  function apply(){
+    var i, n, nodes = document.querySelectorAll("[data-es]");
+    for (i = 0; i < nodes.length; i++){
+      n = nodes[i];
+      if (!n.hasAttribute("data-en")) n.setAttribute("data-en", n.innerHTML);
+      var want = n.getAttribute(lang === "es" ? "data-es" : "data-en");
+      if (want !== null && n.innerHTML !== want) n.innerHTML = want;
+    }
+    for (var a in ATTRS){
+      var keep = a.replace("data-es-", "data-en-");
+      nodes = document.querySelectorAll("[" + a + "]");
+      for (i = 0; i < nodes.length; i++){
+        n = nodes[i];
+        if (!n.hasAttribute(keep)) n.setAttribute(keep, n.getAttribute(ATTRS[a]) || "");
+        n.setAttribute(ATTRS[a], n.getAttribute(lang === "es" ? a : keep) || "");
+      }
+    }
+    nodes = document.querySelectorAll("[data-setlang]");
+    for (i = 0; i < nodes.length; i++)
+      nodes[i].setAttribute("aria-pressed", String(nodes[i].getAttribute("data-setlang") === lang));
+    document.documentElement.setAttribute("lang", lang);
+  }
+
+  window.toolboxLang = {
+    current: function(){ return lang; },
+    // for the strings that only exist inside a tool's own JavaScript
+    t: function(en, es){ return lang === "es" ? es : en; },
+    set: function(v){
+      if (v !== "en" && v !== "es" || v === lang) return;
+      lang = v;
+      try{ localStorage.setItem(KEY, v); }catch(e){}
+      apply();
+      var ev;
+      try{ ev = new CustomEvent("langchange", {detail: v}); }
+      catch(e){ ev = document.createEvent("Event"); ev.initEvent("langchange", true, true); }
+      window.dispatchEvent(ev);
+    },
+    apply: apply
+  };
+
+  document.documentElement.setAttribute("lang", lang);
+
+  function start(){
+    apply();
+    document.addEventListener("click", function(e){
+      var t = e.target, b = null;
+      while (t && t !== document){
+        if (t.getAttribute && t.getAttribute("data-setlang")){ b = t; break; }
+        t = t.parentNode;
+      }
+      if (b) window.toolboxLang.set(b.getAttribute("data-setlang"));
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
+})();
+</script>
+
+<script>
+/* Spanish for the strings each tool builds in JavaScript. Looked up by the
+   English original, so a phrase held in a variable translates too. */
+(function(){
+  "use strict";
+  var P = {"Copied ✓": "Copiado ✓","Downloaded ✓": "Descargado ✓","Added to Notes ✓": "En Notas ✓","In Notes ✓": "En Notas ✓","Cleared ✓": "Borrado ✓","Saved ✓": "Guardado ✓","Done ✓": "Listo ✓","Copy failed": "No se pudo copiar","Notes is full": "Notas está lleno","Nothing to copy": "Nada que copiar","Nothing to export": "Nada que exportar","Nothing to send": "Nada que enviar","Nothing to spin": "Nada que girar","No note": "Sin nota","No notes": "Sin notas","Press ⌘C": "Pulsa ⌘C","Press ⌘C instead": "Mejor pulsa ⌘C","Use ⌘V": "Usa ⌘V","Clipboard empty": "Portapapeles vacío","Saved.": "Guardado.","Activate": "Activar","Focus": "Foco","Break": "Pausa","Long Break": "Pausa larga","Start": "Iniciar","Pause": "Pausar","Resume": "Continuar","Block finished.": "Bloque terminado.","Break over. Back when you're ready.": "Se acabó la pausa. Vuelve cuando estés listo.","Done: ": "Listo: "," Take the break.": " Tómate la pausa."," complete": " completado","nothing logged yet": "sin registros aún"," · last 30 days": " · últimos 30 días"," of focus · exported ": " de foco · exportado "," recorded here. Export first if you want a copy.": " registradas aquí. Exporta primero si quieres una copia.","Delete the focus log? ": "¿Borrar el registro de foco? ","Inhale": "Inhala","Hold": "Sostén","Exhale": "Exhala","Ready": "Listo","Relax": "Relajar"," done": " completados","Spin": "Girar","Spinning.": "Girando.","Spin (only one left)": "Girar (solo queda una)","Mark done": "Marcar como hecha","Put it back": "Devolverla","Delete": "Borrar","Nothing done yet": "Nada hecho aún","Add a few tasks, then spin.": "Agrega algunas tareas y luego gira.","All done. Nothing left to pick.": "Todo listo. No queda nada que elegir.","It was the only one left.": "Era la única que quedaba.","That's plenty — finish or delete one first.": "Con eso basta — termina o borra una primero.","One of ": "Una de ","Tick: ": "Marcar: ","Delete all ": "¿Borrar las "," tasks? This cannot be undone.": " tareas? Esto no se puede deshacer.","Untitled note": "Nota sin título","No notes yet — press “New note”.": "Aún no hay notas — pulsa “Nueva nota”.","Nothing matches that search.": "Nada coincide con esa búsqueda.","Could not save — this browser's storage is full.": "No se pudo guardar — el almacenamiento de este navegador está lleno.","Long note — your mail app may cut it short.": "Nota larga — tu aplicación de correo podría cortarla.","No extra text": "Sin texto adicional","just now": "recién","edited just now": "editada recién","edited ": "editada ","last edited": "última edición","no notes": "sin notas"," min ago": " min atrás"," h ago": " h atrás"," days ago": " días atrás"," note": " nota"," notes": " notas","Delete “": "¿Borrar “","”? This cannot be undone.": "”? Esto no se puede deshacer.","Cannot divide by zero": "No se puede dividir por cero","Not a number": "No es un número","Bad number": "Número inválido","Expression is incomplete": "La expresión está incompleta","Factorial needs a whole number ≥ 0": "El factorial necesita un entero ≥ 0","Square root of a negative number": "Raíz cuadrada de un número negativo","ln needs a value above 0": "ln necesita un valor mayor que 0","log needs a value above 0": "log necesita un valor mayor que 0","sin⁻¹ needs a value between -1 and 1": "sin⁻¹ necesita un valor entre -1 y 1","cos⁻¹ needs a value between -1 and 1": "cos⁻¹ necesita un valor entre -1 y 1","Unknown function ": "Función desconocida ","nothing yet": "nada aún","Tap the keys · ⌫ to fix": "Toca las teclas · ⌫ para corregir","Click to put this expression back on the screen": "Haz clic para volver a poner esta expresión en la pantalla","Clear all ": "¿Borrar las "," calculations? This cannot be undone.": " operaciones? Esto no se puede deshacer."," calculation": " operación"," calculations": " operaciones","There's nothing in the box to save.": "No hay nada en el cuadro para guardar.","There's nothing to send yet.": "Todavía no hay nada que enviar.","There's nothing to export yet — paste some text on the Text side first.": "Todavía no hay nada que exportar — pega algo de texto en el lado Texto primero.","Clear the box? Anything you saved stays in the list below.": "¿Limpiar el cuadro? Lo que guardaste se queda en la lista de abajo.","That file couldn't be read.": "No se pudo leer ese archivo.","This browser's storage is full, so that text wasn't saved.": "El almacenamiento de este navegador está lleno, así que ese texto no se guardó.","This browser's storage is full, so the note wasn't created.": "El almacenamiento de este navegador está lleno, así que la nota no se creó.","That note is no longer in this browser. Paste something below instead.": "Esa nota ya no está en este navegador. Pega algo abajo en su lugar.","Reading a note from Notes — edits here don't change it.": "Leyendo una nota desde Notas — lo que edites aquí no la cambia.","← Back to Notes": "← Volver a Notas","Reading ruler: ": "Regla de lectura: "," word": " palabra"," words": " palabras"," characters": " caracteres"," chars": " caracteres"," line": " línea"," lines": " líneas","under a minute at a steady pace": "menos de un minuto a ritmo tranquilo"," min at a steady pace": " min a ritmo tranquilo","about ": "cerca de ","empty": "vacío","off": "no","on": "sí","Delete all tasks? This can't be undone.": "¿Borrar todas las tareas? Esto no se puede deshacer."," task": " tarea"," tasks": " tareas"," open": " abiertas","Clear everything in ": "¿Borrar todo en ","? This cannot be undone.": "? Esto no se puede deshacer."," item": " elemento"," items": " elementos"," saved in this browser · ": " guardado en este navegador · ",". Nothing is uploaded anywhere.": ". No se sube nada a ninguna parte.","Nothing saved here yet. Notes, calculations, tasks and planners are stored in this browser only — never uploaded.": "Aún no hay nada guardado aquí. Las notas, los cálculos, las tareas y los planificadores se guardan solo en este navegador — nunca se suben.","Nothing to read yet — go back to <b>Text</b> and paste something in.": "Todavía no hay nada que leer — vuelve a <b>Texto</b> y pega algo."};
+  if (!window.toolboxLang) return;
+  window.toolboxLang.s = function(v){
+    if (window.toolboxLang.current() !== "es") return v;
+    return Object.prototype.hasOwnProperty.call(P, v) ? P[v] : v;
+  };
+})();
+</script>
+</head>
+<body>
+<noscript>
+  <p class="nojs" data-es="Esta página necesita JavaScript. Todo corre en tu navegador — no hay servidor — así que sin JavaScript no queda nada que mostrar. Actívalo y recarga.">This page needs JavaScript. Everything runs in your browser — there is no server — so with JavaScript off there is nothing to show. Turn it on and reload.</p>
+</noscript>
+<div class="wrap">
+
+  <div class="topline">
+    <a class="back" href="../index.html" data-es="← Inicio">← Home</a>
+  </div>
+  <h1 data-es="Ruleta de tareas: rompe la parálisis por decisión">To-do Roulette: Break Decision Paralysis</h1>
+  <p class="sub" data-es="Cuando elegir qué hacer cuesta más que hacerlo, deja que elija la ruleta.">When choosing what to do costs more than doing it, let the wheel choose.</p>
+
+  <div class="prefs">
+    <div class="prefs-label" data-es="Apariencia / Idioma">Appearance / Language</div>
+    <div class="prefs-row">
+      <button class="modetog" id="modetog" type="button" aria-label="Dark or light"></button>
+      <div class="langsw" role="group" aria-label="Language"><button type="button" data-setlang="en">EN</button><button type="button" data-setlang="es">ES</button></div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="stage">
+      <div class="wheelbox">
+        <div class="pin"></div>
+        <svg id="wheel" viewBox="0 0 200 200" aria-hidden="true"></svg>
+        <div class="hub"></div>
+      </div>
+      <div class="result">
+        <div class="lbl" data-es="Haz esto">Do this</div>
+        <div class="pick" id="pick">—</div>
+        <div class="hint" id="hint">Add a few tasks, then spin.</div>
+      </div>
+    </div>
+    <button class="spin" id="spinBtn" type="button" disabled data-es="Girar">Spin</button>
+    <div class="soundrow">
+      <button class="snd" id="sndBtn" type="button" aria-pressed="true" data-es="Marcar: sí">Tick: on</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="addrow">
+      <input id="task" type="text" maxlength="90" placeholder="What needs doing?" data-es-ph="¿Qué hay que hacer?" autocomplete="off" aria-label="New task" data-es-aria="Nueva tarea">
+      <button class="addbtn" id="addBtn" type="button" data-es="Agregar">Add</button>
+    </div>
+
+    <div class="listhead">
+      <h2 data-es="La lista">The list</h2>
+      <span id="counts">nothing yet</span>
+    </div>
+    <ul id="list"></ul>
+    <p class="empty" id="empty" data-es="Nada por ahora. Agrega esas cosas a las que le sigues dando vueltas.">Nothing here yet. Add the things you keep circling.</p>
+
+    <div class="bar">
+      <button class="btn danger" id="clrDone" type="button" data-es="Borrar hechas">Clear done</button>
+      <button class="btn danger" id="clrAll" type="button" data-es="Borrar todo">Clear all</button>
+    </div>
+  </div>
+
+  <a class="featured" href="https://estebandenecken.github.io/workspace/" target="_blank" rel="noopener">
+    <div class="kicker" data-es="Workspace">Workspace</div>
+    <div class="ttl" data-es="Espacio de productividad">Productivity Workspace</div>
+    <ul class="feats" data-es="<li>Sin cuenta</li><li>Tus datos se quedan en tu dispositivo</li><li>Exportación a Markdown</li><li>Planificación, notas y herramientas de foco, integradas</li>"><li>No account required</li><li>Your data stays on your device</li><li>Markdown export</li><li>Integrated planning, notes, and focus tools</li></ul>
+  </a>
+
+  <a class="tip-button"
+     href="https://ko-fi.com/estebandenecken"
+     target="_blank" rel="noopener"
+     data-es="❤️ Invítame un café">❤️ Buy me a coffee</a>
+
+  <div class="note" data-es="<b>La lista tiene tope, y ese es el punto.</b> Una lista lo bastante larga como para esconderse en ella es justo lo que provocó la parálisis. Hay un límite de cuántas tareas acepta la ruleta — si lo alcanzas, terminar o borrar algo es la única salida.">
+    <b>The list is capped, and that's the point.</b> A list long enough to hide in is the thing that caused the paralysis in the first place. There's a ceiling on how many tasks the wheel will hold — if you reach it, finishing or deleting something is the only way forward.
+  </div>
+
+  <div class="note" data-es="<b>Solo las tareas pendientes están en la ruleta.</b> Marcar una la atenúa y le quita su porción, así que las probabilidades se reparten entre lo que queda. Los colores pertenecen a la tarea, no a su posición — borrar una no le cambia el color a las demás.">
+    <b>Only unfinished tasks are on the wheel.</b> Ticking one off greys it out and pulls its slice, so the odds shift to what's left. Colours belong to the task, not its position — deleting one doesn't reshuffle everyone else's.
+  </div>
+
+  <div class="note" data-es="<b>La ruleta es realmente aleatoria.</b> Cada tarea pendiente recibe una porción igual y la misma probabilidad, y cada giro es independiente del anterior. No evita repetirse, y una tarea que sigues saltándote no se vuelve más probable — conviene saberlo antes de culparla.">
+    <b>The wheel is genuinely random.</b> Every remaining task gets an equal slice and an equal chance, each spin independent of the last. It won't avoid repeating itself, and a task you keep skipping won't become more likely — which is worth knowing before you blame it.
+  </div>
+
+
+  <footer><p data-es="<a href=&quot;../index.html&quot;>estebandenecken</a> · guardado solo en este dispositivo"><a href="../index.html">estebandenecken</a> · kept on this device only</p></footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // Site language, for the strings that are built here rather than in the markup.
+  var LOC = function(x){
+    return (window.toolboxLang && window.toolboxLang.s) ? window.toolboxLang.s(x) : x;
+  };
+
+  var KEY = "estebandenecken.decide.v1";
+  var MAX = 32;      // a hard stop, deliberately not shown anywhere
+
+  var listEl  = document.getElementById("list");
+  var emptyEl = document.getElementById("empty");
+  var countEl = document.getElementById("counts");
+  var wheelEl = document.getElementById("wheel");
+  var pickEl  = document.getElementById("pick");
+  var hintEl  = document.getElementById("hint");
+  var spinBtn = document.getElementById("spinBtn");
+  var taskEl  = document.getElementById("task");
+  var addBtn  = document.getElementById("addBtn");
+
+  var tasks = [];       // {id, text, done, hue}
+  var nextHue = 0;      // walks the colour circle by the golden angle
+  var wonId = null;
+  var rotation = 0;
+  var spinning = false;
+  var sound = true;
+
+  // Mirrors the CSS: the transition is shortened when motion is reduced.
+  var SPIN_SEC = 4.4;
+  try{
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) SPIN_SEC = 0.6;
+  }catch(e){}
+
+  // ---- colour ------------------------------------------------------------
+  // Golden-angle spacing keeps neighbouring slices far apart on the colour
+  // circle no matter how many there are.
+  var GOLDEN = 137.508;
+
+  function cssVar(n, fallback){
+    var v = getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    return v || fallback;
+  }
+
+  function colorOf(t){
+    var sat = parseFloat(cssVar("--wheel-sat", "70"));
+    var lig = parseFloat(cssVar("--wheel-light", "57"));
+    // With no saturation to work with, spread the slices on lightness instead,
+    // so a grayscale wheel still has 32 tellable-apart wedges.
+    if (!sat) lig = 26 + (t.hue / 360) * 56;
+    return "hsl(" + t.hue.toFixed(1) + ", " + sat + "%, " + lig.toFixed(1) + "%)";
+  }
+
+  // ---- storage -----------------------------------------------------------
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      var p = JSON.parse(raw);
+      if (p && Object.prototype.toString.call(p.tasks) === "[object Array]"){
+        tasks = p.tasks.slice(0, MAX);
+        nextHue = typeof p.nextHue === "number" ? p.nextHue : 0;
+        if (typeof p.sound === "boolean") sound = p.sound;
+        // Older entries, or anything hand-edited, may be missing a hue.
+        tasks.forEach(function(t){
+          if (typeof t.hue !== "number"){ t.hue = nextHue; nextHue = (nextHue + GOLDEN) % 360; }
+        });
+      }
+    }catch(e){}
+  }
+
+  function save(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify({tasks: tasks, nextHue: nextHue, sound: sound}));
+    }catch(e){}
+  }
+
+  function pending(){ return tasks.filter(function(t){ return !t.done; }); }
+
+  // ---- the wheel ---------------------------------------------------------
+
+  function polar(cx, cy, r, deg){
+    var a = (deg - 90) * Math.PI / 180;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  }
+
+  function wedgePath(cx, cy, r, from, to){
+    var p1 = polar(cx, cy, r, from), p2 = polar(cx, cy, r, to);
+    var big = (to - from) > 180 ? 1 : 0;
+    return "M " + cx + " " + cy +
+           " L " + p1[0].toFixed(2) + " " + p1[1].toFixed(2) +
+           " A " + r + " " + r + " 0 " + big + " 1 " + p2[0].toFixed(2) + " " + p2[1].toFixed(2) + " Z";
+  }
+
+  function drawWheel(){
+    var items = pending();
+    var svg = "";
+
+    if (!items.length){
+      svg = '<circle cx="100" cy="100" r="92" fill="' + cssVar("--well", "#070a1c") +
+            '" stroke="' + cssVar("--border", "#1c2340") + '" stroke-width="2"/>' +
+            '<text x="100" y="105" text-anchor="middle" fill="' + cssVar("--olive", "#685C38") + '" ' +
+            'font-family="-apple-system,Helvetica,sans-serif" font-size="12">nothing to spin</text>';
+      wheelEl.innerHTML = svg;
+      return;
+    }
+
+    var n = items.length, step = 360 / n;
+
+    // Bare colour. Each slice is identified by its colour alone, matched to
+    // the dot beside the task in the list.
+    items.forEach(function(t, i){
+      var from = i * step, to = (i + 1) * step;
+      svg += '<path d="' + wedgePath(100, 100, 92, from, to) + '" fill="' + colorOf(t) +
+             '" stroke="' + cssVar("--navy", "#000116") + '" stroke-width="1.2"/>';
+    });
+
+    svg += '<circle cx="100" cy="100" r="92" fill="none" stroke="' +
+           cssVar("--border", "#1c2340") + '" stroke-width="2"/>';
+    wheelEl.innerHTML = svg;
+  }
+
+  // ---- sound -------------------------------------------------------------
+  // A peg-and-flapper tick: one click each time a slice edge passes the pin,
+  // so the rhythm slows exactly as the wheel does.
+
+  var actx = null;
+  function audio(){
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!actx) actx = new AC();
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+
+  function clickAt(ctx, when, level){
+    try{
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "square";
+      o.frequency.setValueAtTime(1150, when);
+      g.gain.setValueAtTime(0.0001, when);
+      g.gain.exponentialRampToValueAtTime(level, when + 0.002);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + 0.028);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(when);
+      o.stop(when + 0.05);
+    }catch(e){}
+  }
+
+  // The CSS timing function, solved in JS so the ticks line up with what the
+  // eye sees rather than drifting against it.
+  function bezier(x1, y1, x2, y2){
+    function A(a, b){ return 1 - 3 * b + 3 * a; }
+    function B(a, b){ return 3 * b - 6 * a; }
+    function C(a){ return 3 * a; }
+    function calc(t, a, b){ return ((A(a, b) * t + B(a, b)) * t + C(a)) * t; }
+    function slope(t, a, b){ return 3 * A(a, b) * t * t + 2 * B(a, b) * t + C(a); }
+    return function(x){
+      if (x <= 0) return 0;
+      if (x >= 1) return 1;
+      var t = x;
+      for (var i = 0; i < 6; i++){
+        var s = slope(t, x1, x2);
+        if (s === 0) break;
+        t -= (calc(t, x1, x2) - x) / s;
+        if (t < 0) t = 0; else if (t > 1) t = 1;
+      }
+      return calc(t, y1, y2);
+    };
+  }
+  var EASE = bezier(0.16, 0.72, 0.16, 1);
+
+  var MIN_GAP = 0.045;   // fastest audible rate — below this it's just a buzz
+
+  function scheduleTicks(from, to, n, dur){
+    if (!sound) return;
+    var ctx = audio();
+    if (!ctx) return;
+
+    var step = 360 / n;
+    var t0 = ctx.currentTime + 0.02;
+    var samples = Math.ceil(dur / 0.006);
+    var prev = from, lastAt = -1;
+
+    for (var i = 1; i <= samples; i++){
+      var frac = i / samples;
+      var deg = from + (to - from) * EASE(frac);
+      if (Math.floor(deg / step) !== Math.floor(prev / step)){
+        var at = t0 + frac * dur;
+        if (at - lastAt >= MIN_GAP){
+          clickAt(ctx, at, 0.075);
+          lastAt = at;
+        }
+      }
+      prev = deg;
+    }
+  }
+
+  function spin(){
+    var items = pending();
+    if (spinning || !items.length) return;
+
+    var n = items.length;
+    var k = Math.floor(Math.random() * n);
+    if (k >= n) k = n - 1;                       // guards the 1-in-forever edge
+    var step = 360 / n;
+
+    // Land the middle of slice k under the pin at twelve o'clock, then add
+    // whole turns so the wheel always travels forward.
+    var target = 360 - (k * step + step / 2);
+    var base = rotation - (rotation % 360);
+    var from = rotation;
+    rotation = base + 360 * 5 + target;
+
+    spinning = true;
+    spinBtn.disabled = true;
+    wonId = null;
+    pickEl.textContent = LOC("…");
+    hintEl.textContent = LOC("Spinning.");
+    renderList();
+
+    scheduleTicks(from, rotation, n, SPIN_SEC);
+    wheelEl.style.transform = "rotate(" + rotation + "deg)";
+
+    var winner = items[k];
+    var settle = setTimeout(finish, SPIN_SEC * 1000 + 300);   // if the event is missed
+    function finish(){
+      clearTimeout(settle);
+      wheelEl.removeEventListener("transitionend", finish);
+      spinning = false;
+      spinBtn.disabled = false;
+      wonId = winner.id;
+      pickEl.textContent = winner.text;
+      pickEl.style.color = colorOf(winner);
+      hintEl.textContent = n === 1 ? "It was the only one left." : "One of " + n + ". Go.";
+      renderList();
+    }
+    wheelEl.addEventListener("transitionend", finish, {once: true});
+  }
+
+  // ---- list --------------------------------------------------------------
+
+  function renderList(){
+    listEl.innerHTML = "";
+    var open = pending().length;
+
+    emptyEl.style.display = tasks.length ? "none" : "block";
+    countEl.textContent = tasks.length
+      ? tasks.length + (tasks.length === 1 ? " task · " : " tasks · ") + open + " to go"
+      : "nothing yet";
+
+    tasks.forEach(function(t){
+      var li = document.createElement("li");
+      li.className = (t.done ? "done" : "") + (t.id === wonId ? " won" : "");
+      li.style.borderLeftColor = t.done ? "" : colorOf(t);
+
+      // A plain colour dot — the same colour as this task's slice.
+      var num = document.createElement("span");
+      num.className = "num";
+      num.style.background = t.done ? "transparent" : colorOf(t);
+      num.style.borderColor = t.done ? cssVar("--border", "#1c2340") : "transparent";
+
+      var txt = document.createElement("span");
+      txt.className = "txt";
+      txt.textContent = t.text;
+
+      var tick = document.createElement("button");
+      tick.type = "button";
+      tick.className = "tick";
+      tick.title = t.done ? "Put it back" : "Mark done";
+      tick.textContent = t.done ? "↺" : "✓";
+      tick.addEventListener("click", function(){
+        t.done = !t.done;
+        if (t.done && t.id === wonId) wonId = null;
+        save(); drawWheel(); renderList(); syncControls();
+      });
+
+      var x = document.createElement("button");
+      x.type = "button";
+      x.className = "x";
+      x.title = "Delete";
+      x.textContent = LOC("✕");
+      x.addEventListener("click", function(){
+        tasks = tasks.filter(function(o){ return o.id !== t.id; });
+        if (t.id === wonId) wonId = null;
+        save(); drawWheel(); renderList(); syncControls();
+      });
+
+      li.appendChild(num); li.appendChild(txt); li.appendChild(tick); li.appendChild(x);
+      listEl.appendChild(li);
+    });
+  }
+
+  function syncControls(){
+    var open = pending().length;
+    spinBtn.disabled = spinning || open === 0;
+    spinBtn.textContent = open > 1 ? LOC("Spin")
+                        : (open === 1 ? LOC("Spin (only one left)") : LOC("Nothing to spin"));
+
+    var full = tasks.length >= MAX;
+    taskEl.disabled = full;
+    addBtn.disabled = full;
+    taskEl.placeholder = full ? "That's plenty — finish or delete one first." : "What needs doing?";
+
+    if (!open && !wonId){
+      pickEl.textContent = LOC("—");
+      pickEl.style.color = "";
+      hintEl.textContent = tasks.length ? "All done. Nothing left to pick." : "Add a few tasks, then spin.";
+    }
+  }
+
+  function addTask(){
+    var v = taskEl.value.trim();
+    if (!v || tasks.length >= MAX) return;
+    tasks.push({
+      id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      text: v, done: false, hue: nextHue
+    });
+    nextHue = (nextHue + GOLDEN) % 360;
+    taskEl.value = "";
+    save(); drawWheel(); renderList(); syncControls();
+    taskEl.focus();
+  }
+
+  // ---- output ------------------------------------------------------------
+
+  function flash(btn, msg){
+    var old = btn.textContent;
+    btn.textContent = msg;
+    setTimeout(function(){ btn.textContent = old; }, 1700);
+  }
+
+  // ---- wiring ------------------------------------------------------------
+
+  addBtn.addEventListener("click", addTask);
+  taskEl.addEventListener("keydown", function(e){
+    if (e.key === "Enter"){ e.preventDefault(); addTask(); }
+  });
+
+  spinBtn.addEventListener("click", spin);
+
+  var sndBtn = document.getElementById("sndBtn");
+  function syncSound(){
+    sndBtn.textContent = LOC("Tick: ") + (sound ? LOC("on") : LOC("off"));
+    sndBtn.setAttribute("aria-pressed", String(sound));
+  }
+  sndBtn.addEventListener("click", function(){
+    sound = !sound;
+    if (sound) audio();          // unlock the context on this gesture
+    save();
+    syncSound();
+  });
+
+  document.getElementById("clrDone").addEventListener("click", function(){
+    var done = tasks.filter(function(t){ return t.done; }).length;
+    if (!done) return flash(this, LOC("Nothing done yet"));
+    tasks = tasks.filter(function(t){ return !t.done; });
+    save(); drawWheel(); renderList(); syncControls();
+  });
+
+  document.getElementById("clrAll").addEventListener("click", function(){
+    if (!tasks.length) return;
+    if (!window.confirm(LOC("Delete all ") + tasks.length +
+                        LOC(" tasks? This cannot be undone."))) return;
+    tasks = []; wonId = null;
+    save(); drawWheel(); renderList(); syncControls();
+  });
+
+  document.addEventListener("keydown", function(e){
+    if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (e.key === " " || e.key === "Enter"){
+      if (!spinBtn.disabled){ e.preventDefault(); spin(); }
+    }
+  });
+
+  // ---- start -------------------------------------------------------------
+
+  load();
+  syncSound();
+  drawWheel();
+  renderList();
+  syncControls();
+
+  /* Text this tool wrote itself has to be redrawn when the language flips —
+     the runtime restores the markup for anything carrying data-es, which
+     would otherwise put "Tick: on" back on a button whose sound is off. */
+  window.addEventListener("langchange", function(){
+    renderList(); drawWheel(); syncSound(); syncControls();
+  });
+})();
+</script>
+<script>
+/* Dark / light toggle. Writes the same saved choice every other page reads.
+   The icon shows what you would switch to, not what you are in. */
+(function(){
+  "use strict";
+  var T   = window.toolboxTheme;
+  var tog = document.getElementById("modetog");
+  if (!T || !tog) return;
+
+  var MOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 13.3A9 9 0 1 1 10.7 3a7 7 0 0 0 10.3 10.3z"/></svg>';
+  var SUN  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M11 1h2v3.2h-2zm0 18.8h2V23h-2zM1 11h3.2v2H1zm18.8 0H23v2h-3.2zM3.9 5.3l1.4-1.4 2.3 2.3-1.4 1.4zm12.5 12.5l1.4-1.4 2.3 2.3-1.4 1.4zM18.7 3.9l1.4 1.4-2.3 2.3-1.4-1.4zM6.2 16.4l1.4 1.4-2.3 2.3-1.4-1.4z"/></svg>';
+
+  function T2(en, es){
+    return (window.toolboxLang && window.toolboxLang.current() === "es") ? es : en;
+  }
+
+  function sync(){
+    var dark = T.mode() === "dark";
+    tog.innerHTML = dark ? SUN : MOON;
+    var label = dark ? T2("Switch to light mode", "Cambiar a modo claro")
+                     : T2("Switch to dark mode",  "Cambiar a modo oscuro");
+    tog.title = label;
+    tog.setAttribute("aria-label", label);
+  }
+
+  tog.addEventListener("click", function(){ T.toggleMode(); sync(); });
+  window.addEventListener("langchange", sync);
+
+  sync();
+})();
+</script>
+</body>
+</html>
